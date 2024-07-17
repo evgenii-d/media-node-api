@@ -22,7 +22,7 @@ router = APIRouter(prefix="/media-node", tags=["media node"])
 
 system_responses = {
     200: {"description": "Command executed successfully"},
-    500: {"description": "Command execution failed"}
+    502: {"description": "Command execution failed"}
 }
 
 
@@ -36,51 +36,50 @@ def xrandr_to_dict(xrandr_args: list[str]) -> dict[str, str]:
     return result
 
 
-@router.get("/name")
+@router.get("/name", status_code=200)
 def node_name() -> str:
     config = ConfigSchema.model_validate(config_manager.load_section())
     return config.nodeName
 
 
-@router.post("/name")
-def set_name(value: str = Body(max_length=40)) -> Response:
+@router.put("/name", status_code=204)
+def update_node_name(value: str = Body(max_length=40)) -> None:
     data = ConfigSchema(nodeName=value.strip())
     config_manager.save_section(data.model_dump(exclude_none=True))
-    return Response(status_code=200)
 
 
-@router.get("/hostname")
+@router.get("/hostname", status_code=200)
 def hostname() -> str:
     return socket.gethostname()
 
 
 @router.post("/hostname", responses={
     200: {"description": "New hostname generated successfully"}
-})
+}, status_code=200)
 def change_hostname() -> str:
     data = ConfigSchema(generatedHostname=f"node-{uuid.uuid4().hex}")
     config_manager.save_section(data.model_dump(exclude_none=True))
     return data.generatedHostname
 
 
-@router.post("/poweroff", responses={**system_responses})
+@router.post("/poweroff", responses={**system_responses}, status_code=200)
 def system_poweroff() -> Response:
     args = ["sudo", "shutdown", "now"]
     command = SysCmdExec.run(args)
-    return Response(status_code=200 if command.success else 500)
+    return Response(status_code=200 if command.success else 502)
 
 
-@router.post("/reboot", responses={**system_responses})
+@router.post("/reboot", responses={**system_responses}, status_code=200)
 def system_reboot() -> Response:
     args = ["sudo", "shutdown", "-r", "now"]
     command = SysCmdExec.run(args)
-    return Response(status_code=200 if command.success else 500)
+    return Response(status_code=200 if command.success else 502)
 
 
-@router.post("/static-upload", responses={
+@router.put("/static", responses={
     200: {"description": "File successfully uploaded"},
-    400: {"description": "Accept only .zip files"}
-})
+    400: {"description": "Invalid file type. Accept only .zip files"}
+}, status_code=200)
 async def static_upload(file: UploadFile) -> Response:
     file.filename = "archive.zip"
     archive = AppDir.STATIC.value/file.filename
@@ -88,7 +87,8 @@ async def static_upload(file: UploadFile) -> Response:
 
     if not zipfile.is_zipfile(archive):
         archive.unlink()
-        raise HTTPException(400, "Accept only .zip files")
+        raise HTTPException(400, (f"Invalid file type: {file.content_type}. "
+                                  "Only .zip files allowed."))
 
     # remove all files and folders from the "public" directory
     for item in (AppDir.STATIC_PUBLIC.value).glob("*"):
@@ -96,111 +96,104 @@ async def static_upload(file: UploadFile) -> Response:
             shutil.rmtree(item)
         else:
             item.unlink(True)
-
     shutil.unpack_archive(archive, AppDir.STATIC_PUBLIC.value)
-    return Response(status_code=200)
 
 
 @router.get("/audio/devices", responses={
     200: {"description": "Audio devices retrieved successfully"},
-    500: {"description": "Failed to retrieve audio devices"}
-})
+    502: {"description": "Failed to retrieve audio devices"}
+}, status_code=200)
 def audio_devices() -> list[AudioDeviceSchema]:
     command = SysCmdExec.run(["pacmd", "list-sinks"])
     if not command.success:
-        raise HTTPException(500, "Command execution failed")
+        raise HTTPException(502, "Command execution failed")
 
     result = []
     devices = re.findall(r"index: (\d+)\n.*name: <(.*)>", command.output)
     try:
         for d in devices:
-            result.append(AudioDeviceSchema(id=d[0], name=d[1]))
+            result.append(AudioDeviceSchema(id=int(d[0]), name=d[1]))
     except IndexError as e:
-        raise HTTPException(500, "Failed to retrieve audio devices") from e
+        raise HTTPException(502, "Failed to retrieve audio devices") from e
     return result
 
 
 @router.get("/audio/default-device", responses={
     200: {"description": "Default Audio device retrieved successfully"},
-    500: {"description": "Failed to retrieve default audio device"}
-})
+    502: {"description": "Failed to retrieve default audio device"}
+}, status_code=200)
 def default_audio_device() -> AudioDeviceSchema:
     command = SysCmdExec.run(["pacmd", "list-sinks"])
     if not command.success:
-        raise HTTPException(500, "Command execution failed")
+        raise HTTPException(502, "Command execution failed")
 
     device = re.search(r"\* index: (\d+)\n.*name: <(.+)>", command.output)
     try:
-        return AudioDeviceSchema(id=device.group(1), name=device.group(2))
+        device_id, device_name = int(device.group(1)), device.group(2)
+        return AudioDeviceSchema(id=device_id, name=device_name)
     except (IndexError, AttributeError) as e:
         message = "Failed to retrieve default audio device"
-        raise HTTPException(500, message) from e
+        raise HTTPException(502, message) from e
 
 
 @router.post("/audio/default-device", responses={
-    200: {"description": "Default audio device set successfully"},
-    500: {"description": "Command execution failed"}
-})
-def set_default_audio_device(device: str = Body()) -> Response:
+    204: {"description": "Default audio device set successfully"},
+    502: {"description": "Command execution failed"}
+}, status_code=204)
+def set_default_audio_device(device: str = Body()) -> None:
     command = SysCmdExec.run(["pacmd", "set-default-sink", device])
     if not command.success:
-        raise HTTPException(500, "Command execution failed")
+        raise HTTPException(502, "Command execution failed")
     data = ConfigSchema(audioDevice=device)
     config_manager.save_section(data.model_dump(exclude_none=True))
-    return Response(status_code=200)
 
 
 @router.get("/audio/volume", responses={
     200: {"description": "Current audio volume retrieved successfully"},
-    500: {"description": "Failed to retrieve current audio volume"}
-})
+    502: {"description": "Failed to retrieve current audio volume"}
+}, status_code=200)
 def audio_volume() -> int:
     command = SysCmdExec.run(["pactl", "get-sink-volume", "@DEFAULT_SINK@"])
     if not command.success:
-        raise HTTPException(500, "Failed to retrieve current audio volume")
+        raise HTTPException(502, "Failed to retrieve current audio volume")
     volume_level = int(command.output.strip().split()[4][:-1])
     return volume_level
 
 
 @router.post("/audio/volume", responses={
-    200: {"description": "Audio volume set successfully"},
-    500: {"description": "Failed to set audio volume"}
-})
-def set_audio_volume(level: int = Body(ge=0, le=150)) -> Response:
+    204: {"description": "Audio volume set successfully"},
+    502: {"description": "Failed to set audio volume"}
+}, status_code=204)
+def set_audio_volume(level: int = Body(ge=0, le=150)) -> None:
     args = ["pactl", "set-sink-volume", "@DEFAULT_SINK@", f"{level}%"]
     command = SysCmdExec.run(args)
     if not command.success:
-        raise HTTPException(500, "Failed to set audio volume")
+        raise HTTPException(502, "Failed to set audio volume")
     data = ConfigSchema(volume=level)
     config_manager.save_section(data.model_dump(exclude_none=True))
-    return Response(status_code=200)
 
 
 @router.get("/wifi/interfaces", responses={
     200: {"description": "List of Wi-Fi interfaces retrieved successfully"},
-    204: {"description": "No Wi-Fi interfaces found"},
-    500: {"description": "Failed to retrieve list of Wi-Fi interfaces"}
-})
+    502: {"description": "Failed to retrieve list of Wi-Fi interfaces"}
+}, status_code=200)
 def wifi_interfaces() -> list[WifiInterfaceSchema]:
     command = SysCmdExec.run(["sudo", "nmcli", "-t", "device", "status"])
     if not command.success:
-        raise HTTPException(500, "Command execution failed")
+        raise HTTPException(502, "Command execution failed")
 
     result = re.findall(r"(\S.+)(?:\:wifi\:)(.+?):", command.output)
-    if not result:
-        return Response(status_code=204)
     return [WifiInterfaceSchema(name=i[0], status=i[1]) for i in result]
 
 
-@router.get("/wifi/saved-connections", responses={
+@router.get("/wifi/connections", responses={
     200: {"description": "Wi-Fi connections retrieved successfully"},
-    204: {"description": "No Wi-Fi connections found"},
-    500: {"description": "Failed to retrieve Wi-Fi connections"}
-})
+    502: {"description": "Failed to retrieve Wi-Fi connections"}
+}, status_code=200)
 def saved_wifi_connections() -> list[SavedWifiConnectionSchema]:
     command = SysCmdExec.run(["sudo", "nmcli", "-t", "connection", "show"])
     if not command.success:
-        raise HTTPException(500, "Command execution failed")
+        raise HTTPException(502, "Command execution failed")
 
     result = []
     for line in command.output.splitlines():
@@ -208,35 +201,28 @@ def saved_wifi_connections() -> list[SavedWifiConnectionSchema]:
             data = [i.strip() for i in line.split(":")]
             item = SavedWifiConnectionSchema(ssid=data[0], interface=data[3])
             result.append(item)
-    return result if result else Response(status_code=204)
+    return result
 
 
-@router.delete("/wifi/saved-connections", responses={**system_responses})
-def delete_saved_wifi_connections() -> Response:
-    command = SysCmdExec.run(["sudo", "nmcli", "-t", "connection", "show"])
-    if not command.success:
-        raise HTTPException(500, "Command execution failed")
-
-    for line in command.output.splitlines():
-        if "wireless" in line:
-            connection_uuid = [i.strip() for i in line.split(":")][1]
-            delete_connection = SysCmdExec.run(["sudo", "nmcli", "connection",
-                                                "delete", connection_uuid])
-            if not delete_connection.success:
-                raise HTTPException(500, f"Failed to delete {connection_uuid}")
-    return Response(status_code=200)
+@router.delete("/wifi/connections/{ssid}", responses={
+    204: {"description": "Wi-Fi connection deleted successfully"},
+    502: {"description": "Failed to delete Wi-Fi connection"}
+}, status_code=204)
+def delete_saved_wifi_connection(ssid: str) -> None:
+    args = ["sudo", "nmcli", "connection", "delete", ssid]
+    if not SysCmdExec.run(args).success:
+        raise HTTPException(502, f"Failed to delete {ssid}")
 
 
 @router.get("/wifi/{interface}/networks", responses={
     200: {"description": "Available Wi-Fi networks retrieved successfully"},
-    204: {"description": "No available Wi-Fi networks found"},
-    500: {"description": "Failed to retrieve Wi-Fi networks"}
-})
+    502: {"description": "Failed to retrieve Wi-Fi networks"}
+}, status_code=200)
 def available_wifi_networks(interface: str) -> list[WifiNetworkSchema]:
     command = SysCmdExec.run(["sudo", "nmcli", "-t", "device",
                               "wifi", "list", "ifname", interface])
     if not command.success:
-        raise HTTPException(500, "Command execution failed")
+        raise HTTPException(502, "Command execution failed")
 
     result: list[WifiNetworkSchema] = []
     for line in command.output.splitlines():
@@ -258,11 +244,15 @@ def available_wifi_networks(interface: str) -> list[WifiNetworkSchema]:
             network["signal"] = int(network["signal"])
             network["security"] = network["security"].split(" ")
             result.append(WifiNetworkSchema(**network))
-    return result if result else Response(status_code=204)
+    return result
 
 
-@router.post("/wifi/connect", responses={**system_responses})
-def connect_wifi_network(data: ConnectWifiNetworkSchema) -> Response:
+@router.post("/wifi/connect", responses={
+    204: {"description": "Successfully connected to the Wi-Fi network"},
+    500: {"description": "Failed to connect to the Wi-Fi network"},
+    502: {"description": "Failed to enable autoconnect for the Wi-Fi network"}
+}, status_code=204)
+def connect_wifi_network(data: ConnectWifiNetworkSchema) -> None:
     connect_args = ["sudo", "nmcli", "device", "wifi", "connect", data.ssid]
 
     if data.password:
@@ -273,18 +263,22 @@ def connect_wifi_network(data: ConnectWifiNetworkSchema) -> Response:
 
     connect = SysCmdExec.run(connect_args)
     if not connect.success:
-        raise HTTPException(500, "Failed to connect interface")
+        raise HTTPException(500, "Failed to connect to the Wi-Fi network")
 
     enable_autoconnect = SysCmdExec.run(["sudo", "nmcli", "connection",
                                          "modify", data.ssid,
                                          "connection.autoconnect", "yes"])
     if not enable_autoconnect.success:
-        raise HTTPException(500, "Failed to enable autoconnect")
-    return Response(status_code=200)
+        message = "Failed to enable autoconnect for the Wi-Fi network"
+        raise HTTPException(502, message)
 
 
-@router.post("/wifi/disconnect", responses={**system_responses})
-def disconnect_wifi_network(ssid: str = Body()) -> Response:
+@router.post("/wifi/disconnect", responses={
+    204: {"description": "Successfully disconnected from the Wi-Fi network"},
+    500: {"description": "Failed to disconnect from the Wi-Fi network"},
+    502: {"description": "Failed to disable autoconnect for the Wi-Fi network"}
+}, status_code=204)
+def disconnect_wifi_network(ssid: str = Body()) -> None:
     disconnect = SysCmdExec.run(["sudo", "nmcli", "connection", "down", ssid])
     if not disconnect.success:
         raise HTTPException(500, "Failed to disconnect interface")
@@ -293,19 +287,17 @@ def disconnect_wifi_network(ssid: str = Body()) -> Response:
                                           "modify", ssid,
                                           "connection.autoconnect", "no"])
     if not disable_autoconnect.success:
-        raise HTTPException(500, "Failed to disable autoconnect")
-    return Response(status_code=200)
+        raise HTTPException(502, "Failed to disable autoconnect")
 
 
-@router.get("/displays", responses={
+@router.get("/displays", status_code=200, responses={
     200: {"description": "List of connected displays retrieved successfully"},
-    204: {"description": "No connected displays found"},
-    500: {"description": "Failed to retrieve list of connected displays"}
+    502: {"description": "Failed to retrieve list of connected displays"}
 })
 def connected_displays() -> list[ConnectedDisplay]:
     command = SysCmdExec.run(["sudo", "xrandr"])
     if not command.success:
-        raise HTTPException(500, "Command execution failed")
+        raise HTTPException(502, "Command execution failed")
 
     regex = (r"(.+)\s(?:connected)(.*)\s(\d+x\d+)\+(\d+\+\d+)\s(.*?)\(.+\n"
              r"((\s+\d+x\d+\w*\s+.*\n)+)")
@@ -317,7 +309,8 @@ def connected_displays() -> list[ConnectedDisplay]:
         width, height = map(int, i[2].split("x"))
         x, y = map(int, i[3].split("+"))
         if i[4]:
-            rotation, reflect = i[4].split()[0], " ".join(i[4].split()[1:])
+            rotation = i[4].split()[0]
+            reflect = "".join(filter(str.isupper, i[4])).lower()
         else:
             rotation, reflect = "normal", "normal"
         result.append(ConnectedDisplay(
@@ -329,18 +322,20 @@ def connected_displays() -> list[ConnectedDisplay]:
             reflect=reflect,
             resolutions=[s.split()[0] for s in i[5].splitlines()]
         ))
-    return result if result else Response(status_code=204)
+    return result
 
 
-@router.get("/displays/config", response_model_exclude_none=True,
-            responses={**system_responses})
+@router.get("/displays/config", status_code=200, responses={
+    200: {"description": "Displays configuration retrieved successfully"},
+    404: {"description": "Displays configuration not created"}
+}, response_model_exclude_none=True)
 def displays_config() -> list[DisplayConfig]:
     if not xrandr_config.exists():
-        return Response(status_code=204)
+        raise HTTPException(404, "Displays configuration not created")
 
     xrandr_data = xrandr_config.read_text("utf-8")
     if not xrandr_data:
-        return Response(status_code=204)
+        raise HTTPException(404, "Displays configuration not created")
 
     result = []
     for line in xrandr_data.splitlines():
@@ -359,12 +354,14 @@ def displays_config() -> list[DisplayConfig]:
         if "--reflect" in args:
             display.reflect = args["--reflect"]
         result.append(display)
-
     return result
 
 
-@router.post("/displays/config", responses={**system_responses})
-def set_display_config(display: DisplayConfig) -> Response:
+@router.put("/displays/config", status_code=204, responses={
+    204: {"description": "Display configuration updated successfully"},
+    500: {"description": "Failed to update display configuration"}
+})
+def update_display_config(display: DisplayConfig) -> None:
     args = ["sudo", "xrandr", "--output", display.name]
     if display.resolution:
         width, height = display.resolution.width, display.resolution.height
@@ -381,17 +378,17 @@ def set_display_config(display: DisplayConfig) -> Response:
 
     command = SysCmdExec.run(args)
     if not command.success:
-        raise HTTPException(500, "Command execution failed")
+        raise HTTPException(502, "Command execution failed")
 
     if not xrandr_config.exists():
         xrandr_config.write_text(" ".join(args), "utf-8")
-        return Response(status_code=200)
+        return
 
     xrandr_data = xrandr_config.read_text("utf-8")
     if display.name not in xrandr_data:
         xrandr_data = f'{" ".join(args)}\n{xrandr_data}'
         xrandr_config.write_text(xrandr_data, "utf-8")
-        return Response(status_code=200)
+        return
 
     stored_args = []
     xrandr_data = xrandr_data.splitlines()
@@ -408,17 +405,15 @@ def set_display_config(display: DisplayConfig) -> Response:
                        if " --primary" in i else i for i in xrandr_data]
     xrandr_data.insert(0, " ".join(merged_args))
     xrandr_config.write_text("\n".join(xrandr_data), "utf-8")
-    return Response(status_code=200)
 
 
-@router.delete("/displays/config", responses={
-    200: {"description": "Display configuration deleted successfully"},
-    204: {"description": "Displays configuration not created"},
+@router.delete("/displays/config/{display_name}", status_code=204, responses={
+    204: {"description": "Display configuration deleted successfully"},
     404: {"description": "Display configuration not found"}
 })
-def delete_display_config(display_name: str = Body()) -> Response:
+def delete_display_config(display_name: str) -> None:
     if not xrandr_config.exists():
-        return Response(status_code=204)
+        raise HTTPException(404, "Displays configuration not created")
 
     xrandr_data = xrandr_config.read_text("utf-8")
     if display_name not in xrandr_data:
@@ -430,4 +425,3 @@ def delete_display_config(display_name: str = Body()) -> Response:
             xrandr_data.remove(line)
             xrandr_config.write_text("\n".join(xrandr_data), "utf-8")
             break
-    return Response(status_code=200)

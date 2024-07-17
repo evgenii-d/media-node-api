@@ -67,7 +67,7 @@ class ConnectedDisplay(BaseModel):
     resolution: DisplayResolution
     position: DisplayPosition
     rotation: DisplayRotation
-    reflect: str
+    reflect: DisplayReflect
     resolutions: list[str]
 
 
