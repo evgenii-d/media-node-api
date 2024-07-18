@@ -3,6 +3,7 @@ import uuid
 import shutil
 import socket
 import zipfile
+from typing import Literal
 from fastapi import APIRouter, HTTPException, Response, UploadFile, Body
 
 from src.constants import AppDir
@@ -23,6 +24,11 @@ router = APIRouter(prefix="/media-node", tags=["media node"])
 system_responses = {
     200: {"description": "Command executed successfully"},
     502: {"description": "Command execution failed"}
+}
+
+service_responses = {
+    204: {"description": "Service operation completed"},
+    500: {"description": "Service operation failed"}
 }
 
 
@@ -290,10 +296,10 @@ def disconnect_wifi_network(ssid: str = Body()) -> None:
         raise HTTPException(502, "Failed to disable autoconnect")
 
 
-@router.get("/displays", status_code=200, responses={
+@router.get("/displays", responses={
     200: {"description": "List of connected displays retrieved successfully"},
     502: {"description": "Failed to retrieve list of connected displays"}
-})
+}, status_code=200)
 def connected_displays() -> list[ConnectedDisplay]:
     command = SysCmdExec.run(["sudo", "xrandr"])
     if not command.success:
@@ -325,10 +331,18 @@ def connected_displays() -> list[ConnectedDisplay]:
     return result
 
 
-@router.get("/displays/config", status_code=200, responses={
+@router.post("/displays/detect/{action}", responses={**service_responses},
+             status_code=204)
+def toggle_displays_detection(action: Literal["start", "stop"]) -> None:
+    args = ["systemctl", "--user", action, "display-detector.service"]
+    command = SysCmdExec.run(args)
+    return Response(status_code=204 if command.success else 500)
+
+
+@ router.get("/displays/config", responses={
     200: {"description": "Displays configuration retrieved successfully"},
     404: {"description": "Displays configuration not created"}
-}, response_model_exclude_none=True)
+}, status_code=200, response_model_exclude_none=True)
 def displays_config() -> list[DisplayConfig]:
     if not xrandr_config.exists():
         raise HTTPException(404, "Displays configuration not created")
@@ -357,10 +371,10 @@ def displays_config() -> list[DisplayConfig]:
     return result
 
 
-@router.put("/displays/config", status_code=204, responses={
+@ router.put("/displays/config", responses={
     204: {"description": "Display configuration updated successfully"},
     500: {"description": "Failed to update display configuration"}
-})
+}, status_code=204)
 def update_display_config(display: DisplayConfig) -> None:
     args = ["sudo", "xrandr", "--output", display.name]
     if display.resolution:
@@ -407,10 +421,10 @@ def update_display_config(display: DisplayConfig) -> None:
     xrandr_config.write_text("\n".join(xrandr_data), "utf-8")
 
 
-@router.delete("/displays/config/{display_name}", status_code=204, responses={
+@ router.delete("/displays/config/{display_name}", responses={
     204: {"description": "Display configuration deleted successfully"},
     404: {"description": "Display configuration not found"}
-})
+}, status_code=204)
 def delete_display_config(display_name: str) -> None:
     if not xrandr_config.exists():
         raise HTTPException(404, "Displays configuration not created")

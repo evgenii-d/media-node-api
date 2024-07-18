@@ -16,7 +16,7 @@ echo "Creating directory for services under current user"
 mkdir -p $user_services_dir
 
 # Create systemd sevices
-echo "Add Media Node API Service"
+echo "* Media Node API Service"
 cat <<EOF >$user_services_dir/media-node-api.service
 [Unit]
 Description=Media Node API
@@ -33,7 +33,7 @@ ExecStart=$scripts_dir/run_app.sh
 WantedBy=default.target
 EOF
 
-echo "Add VLC Media Player Service"
+echo "* VLC Media Player Service"
 cat <<EOF >$user_services_dir/media-player.service
 [Unit]
 Description=VLC Media Player + RC Interface
@@ -46,14 +46,14 @@ EnvironmentFile=$configs_dir/media_player.ini
 EnvironmentFile=$configs_dir/playlists.ini
 ExecStart=$scripts_dir/run_vlc.sh
 ExecStartPost=sleep 3
-ExecStartPost=python3 $scripts_dir/init_vlc_audio.py
+ExecStartPost=python3 $scripts_dir/vlc_audio.py
 
 [Install]
 WantedBy=graphical.target
 WantedBy=default.target
 EOF
 
-echo "Add Chromium Browser Service"
+echo "* Chromium Browser Service"
 cat <<EOF >$user_services_dir/web-browser.service
 [Unit]
 Description=Chromium Browser
@@ -64,6 +64,22 @@ Restart=on-failure
 Environment="DISPLAY=:0"
 EnvironmentFile=$configs_dir/web_browser.ini
 ExecStart=$scripts_dir/run_web_browser.sh
+
+[Install]
+WantedBy=graphical.target
+WantedBy=default.target
+EOF
+
+echo "* Display Detector Service"
+cat <<EOF >$user_services_dir/display-detector.service
+[Unit]
+Description=Display Detector
+After=graphical.target
+
+[Service]
+Restart=on-failure
+Environment="DISPLAY=:0"
+ExecStart=python3 $scripts_dir/display_detector.py
 
 [Install]
 WantedBy=graphical.target
