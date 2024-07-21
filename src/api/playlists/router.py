@@ -1,68 +1,67 @@
 from pathlib import Path
-from fastapi import APIRouter, Body, HTTPException, Response
+from fastapi import APIRouter, Body, HTTPException
 
 from src.constants import AppDir
-from src.core.filesys import (get_dir_files, del_files_from_dir,
-                              check_dir_files)
+from src.core.filesys import get_dir_files, check_dir_files
 from src.api.playlists.config import config_manager
 from src.api.playlists.service import playlist_content, create_playlist
-from src.api.playlists.schemas import (PlaylistSchema, ConfigSchema,
-                                       DeletedPlaylistsSchema)
+from src.api.playlists.schemas import PlaylistSchema, ConfigSchema
 
 router = APIRouter(prefix="/playlists", tags=["playlists"])
 
 
 @router.get("/", responses={
-    200: {"description": "Playlists retrieved successfully"},
-    204: {"description": "No playlists available"}
-})
+    200: {"description": "Playlists retrieved successfully"}
+}, status_code=200)
 def available_playlists() -> list[str]:
     files = get_dir_files(AppDir.PLAYLISTS.value, suffix=False)
     files.sort()
-    return files if len(files) > 0 else Response(status_code=204)
+    return files
 
 
-@router.post("/", responses={
-    200: {"description": "Playlist created successfully"},
+@router.put("/", responses={
+    200: {"description": "Playlist updated successfully"},
+    201: {"description": "Playlist created successfully"},
     404: {"description": "Playlist files not found"}
-})
-def new_playlist(playlist: PlaylistSchema) -> PlaylistSchema:
+}, status_code=201)
+def update_playlist(playlist: PlaylistSchema) -> PlaylistSchema:
     files = check_dir_files(playlist.files, AppDir.MEDIA.value)
     if len(files.available) == 0:
         raise HTTPException(404, "Playlist files not found")
 
+    is_exists = (AppDir.PLAYLISTS.value/playlist.name).exists()
     paths = [AppDir.MEDIA.value/file for file in files.available]
     create_playlist(playlist.name, AppDir.PLAYLISTS.value, paths)
-    return PlaylistSchema(name=playlist.name, files=files.available)
+    new_playlist = PlaylistSchema(name=playlist.name, files=files.available)
+    if is_exists:
+        return new_playlist, 200
+    return new_playlist, 201
 
 
-@router.delete("/")
-def delete_playlists(files: list[str]) -> DeletedPlaylistsSchema:
-    files = [f"{file}.m3u" for file in files]
-    dir_files = check_dir_files(files, AppDir.PLAYLISTS.value)
-    del_files_from_dir(dir_files.available, AppDir.PLAYLISTS.value)
-    return DeletedPlaylistsSchema(
-        deleted=[Path(file).stem for file in dir_files.available],
-        missing=[Path(file).stem for file in dir_files.missing]
-    )
+@router.delete("/{playlist_name}", responses={
+    204: {"description": "Playlist deleted successfully"},
+    404: {"description": "Playlist not found"}
+}, status_code=204)
+def delete_playlists(playlist_name: str) -> None:
+    file = AppDir.PLAYLISTS.value/f"{playlist_name}.m3u"
+    if not file.exists():
+        raise HTTPException(404, "Playlist not found")
+    file.unlink()
 
 
 @router.get("/default", responses={
-    200: {"description": "Default playlist retrieved successfully"},
-    204: {"description": "Default playlist not set"},
-})
+    200: {"description": "Default playlist retrieved successfully"}
+}, status_code=200)
 async def default_playlist() -> str:
     config = ConfigSchema.model_validate(config_manager.load_section())
-    if config.defaultPlaylist:
-        return Path(config.defaultPlaylist).stem
-    return Response(status_code=204)
+    return Path(config.defaultPlaylist).stem
 
 
-@router.post("/default", responses={
-    200: {"description": "Default playlist changed"},
+@router.put("/default", responses={
+    204: {"description": "Default playlist changed"},
     404: {"description": "Playlist not found"}
-})
-def set_default_playlist(playlist: str = Body()) -> Response:
+}, status_code=204)
+def set_default_playlist(playlist: str = Body()) -> None:
     playlists = get_dir_files(AppDir.PLAYLISTS.value, suffix=False)
     if playlist != "" and playlist not in playlists:
         raise HTTPException(404, "Playlist not found")
@@ -71,19 +70,18 @@ def set_default_playlist(playlist: str = Body()) -> Response:
         # Default playlist unset
         data = ConfigSchema(defaultPlaylist="")
         config_manager.save_section(data.model_dump())
-        return Response(status_code=200)
+        return
 
     # Default playlist set to {playlist}
     playlist_path = (AppDir.PLAYLISTS.value/f"{playlist}.m3u").as_posix()
     data = ConfigSchema(defaultPlaylist=playlist_path)
     config_manager.save_section(data.model_dump())
-    return Response(status_code=200)
 
 
 @router.get("/content/{playlist_name}", responses={
     200: {"description": "Playlist content retrieved"},
     404: {"description": "Playlist not found"}
-})
+}, status_code=200)
 def get_playlist_content(playlist_name: str) -> list[str]:
     playlist_path = AppDir.PLAYLISTS.value/f"{playlist_name}.m3u"
     if playlist_path.exists():

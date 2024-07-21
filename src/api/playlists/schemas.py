@@ -16,8 +16,3 @@ class PlaylistSchema(BaseModel):
     @classmethod
     def validate_name(cls, value: str) -> str:
         return secure_filename(value).lower()
-
-
-class DeletedPlaylistsSchema(BaseModel):
-    deleted: list[str]
-    missing: list[str]

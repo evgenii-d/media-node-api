@@ -1,9 +1,11 @@
-from typing import Optional
+from typing import Literal, Optional
 from pydantic import BaseModel, Field, field_validator
 
 from src.api.media_player.constants import (AudioOutputModule,
                                             VideoOutputModule,
                                             PlaybackOption)
+
+PlayerControlCommands = Literal["play", "stop", "next", "prev", "pause"]
 
 
 class ConfigSchema(BaseModel, use_enum_values=True):

@@ -14,7 +14,10 @@ from src.core.filesys import (get_dir_files, del_files_from_dir,
 router = APIRouter(prefix="/media-files", tags=["media files"])
 
 
-@router.get("/")
+@router.get("/", responses={
+    200: {"description": "Available media files retrieved successfully"},
+    500: {"description": "Failed to retrieve media files"}
+}, status_code=200)
 def available_files() -> AvailableFilesSchema:
     files = get_dir_files(AppDir.MEDIA.value)
     return AvailableFilesSchema(
@@ -24,7 +27,9 @@ def available_files() -> AvailableFilesSchema:
     )
 
 
-@router.post("/")
+@router.post("/", responses={
+    200: {"description": "Files uploaded successfully"},
+}, status_code=200)
 async def upload_files(files: list[UploadFile]) -> UploadOutSchema:
     accepted_files: list[UploadFile] = []
     rejected_files: list[UploadFile] = []
@@ -39,26 +44,29 @@ async def upload_files(files: list[UploadFile]) -> UploadOutSchema:
                            rejected=[i.filename for i in rejected_files])
 
 
-@router.delete("/")
-def delete_files(files: list[str]) -> DeletedFilesSchema:
-    dir_files = check_dir_files(files, AppDir.MEDIA.value)
-    del_files_from_dir(dir_files.available, AppDir.MEDIA.value)
-    return DeletedFilesSchema(
-        deleted=dir_files.available,
-        missing=dir_files.missing
-    )
+@router.delete("/{filename}", responses={
+    204: {"description": "File deleted successfully"},
+    404: {"description": "File not found"},
+}, status_code=204)
+def delete_files(filename: str) -> None:
+    file = AppDir.MEDIA.value/filename
+    if not file.exists():
+        raise HTTPException(404, "File not found")
+    file.unlink()
 
 
 @router.get("/download/{filename}", responses={
     200: {"description": "File successfully downloaded"},
     404: {"description": "File not found"}
-})
+}, status_code=200)
 def download_file(filename: str) -> FileResponse:
     if (AppDir.MEDIA.value/filename).exists():
         return FileResponse(AppDir.MEDIA.value/filename, 200)
     raise HTTPException(404, "File not found")
 
 
-@router.get("/types")
+@router.get("/types", responses={
+    200: {"description": "Supported MIME types retrieved successfully"}
+}, status_code=200)
 def supported_types() -> list[str]:
     return [member.name.lower() for member in MIMEType]

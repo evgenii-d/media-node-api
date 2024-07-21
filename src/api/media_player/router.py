@@ -1,152 +1,130 @@
-from fastapi import APIRouter, Body, HTTPException, Response
+from typing import Literal
+from fastapi import APIRouter, Body, HTTPException
 
 from src.constants import AppDir
 from src.core.vlcrc import VLCRemoteControl
 from src.core.syscmd import SysCmdExec
 from src.api.media_player.config import config_manager, vlc_rc
-from src.api.media_player.schemas import ConfigSchema
+from src.api.media_player.schemas import ConfigSchema, PlayerControlCommands
 
 router = APIRouter(prefix="/media-player", tags=["media player"])
 
-service_responses = {
-    200: {"description": "Service operation completed"},
-    500: {"description": "Service operation failed"}
-}
 
-player_responses = {
-    200: {"description": "Command executed successfully"},
-    503: {"description": "Command execution failed"}
-}
-
-
-@router.get("/config")
+@router.get("/config", responses={
+    200: {"description": "Media player configuration retrieved successfully"}
+}, status_code=200)
 def player_config() -> ConfigSchema:
     return ConfigSchema.model_validate(config_manager.load_section())
 
 
-@router.post("/config")
-def set_player_config(data: ConfigSchema) -> Response:
+@router.patch("/config", responses={
+    204: {"description": "Media player configuration updated successfully"}
+}, status_code=204)
+def update_player_config(data: ConfigSchema) -> None:
     config_manager.save_section(data.model_dump(exclude_none=True))
-    return Response(status_code=200)
 
 
-@router.post("/start-service", responses={**service_responses})
-def start_player() -> Response:
-    args = ["systemctl", "--user", "start", "media-player.service"]
-    command = SysCmdExec.run(args)
-    return Response(status_code=200 if command.success else 500)
+@router.post("/service/{command}", responses={
+    204: {"description": "Media player service command executed"},
+    502: {"description": "Failed to execute media player service command"}
+}, status_code=204)
+def player_service(command: Literal["start", "stop", "restart"]) -> None:
+    args = ["systemctl", "--user", command, "media-player.service"]
+    if not SysCmdExec.run(args).success:
+        raise HTTPException(502, f"Failed to execute '{command}' command")
 
 
-@router.post("/stop-service", responses={**service_responses})
-def stop_player() -> Response:
-    args = ["systemctl", "--user", "stop", "media-player.service"]
-    command = SysCmdExec.run(args)
-    return Response(status_code=200 if command.success else 500)
+@router.post("/control/{command}", responses={
+    204: {"description": "Media player command executed successfully"},
+    502: {"description": "Media player unavailable"}
+}, status_code=204)
+def player_control(command: PlayerControlCommands) -> None:
+    if not vlc_rc.exec(command).success:
+        raise HTTPException(502, "Media player unavailable")
 
 
-@router.post("/restart-service", responses={**service_responses})
-def restart_player() -> Response:
-    args = ["systemctl", "--user", "restart", "media-player.service"]
-    command = SysCmdExec.run(args)
-    return Response(status_code=200 if command.success else 500)
+@router.post("/playlist/goto", responses={
+    204: {"description": "Successfully navigated to the playlist index"},
+    502: {"description": "Media player unavailable"}
+}, status_code=204)
+def goto_playlist_index(index: int = Body(gt=0)) -> None:
+    if not vlc_rc.goto(index):
+        raise HTTPException(502, "Media player unavailable")
 
 
-@router.post("/play", responses={**player_responses})
-def play() -> Response:
-    return Response(status_code=200 if vlc_rc.play() else 503)
+@router.post("/playlist/clear", responses={
+    204: {"description": "Playlist cleared successfully"},
+    502: {"description": "Media player unavailable"}
+}, status_code=204)
+def clear_playlist() -> None:
+    if not vlc_rc.clear():
+        raise HTTPException(502, "Media player unavailable")
 
 
-@router.post("/stop", responses={**player_responses})
-def stop() -> Response:
-    return Response(status_code=200 if vlc_rc.stop() else 503)
-
-
-@router.post("/next", responses={**player_responses})
-def next_item() -> Response:
-    return Response(status_code=200 if vlc_rc.next() else 503)
-
-
-@router.post("/previous", responses={**player_responses})
-def previous_item() -> Response:
-    return Response(status_code=200 if vlc_rc.prev() else 503)
-
-
-@router.post("/goto", responses={**player_responses})
-def goto_index(index: int = Body(gt=0)) -> Response:
-    return Response(status_code=200 if vlc_rc.goto(index) else 503)
-
-
-@router.post("/clear", responses={**player_responses})
-def clear_playlist() -> Response:
-    return Response(status_code=200 if vlc_rc.clear() else 503)
-
-
-@router.get("/status", responses={
+@router.get("/playlist/status", responses={
     200: {"description": "Playlist status retrieved successfully"},
-    503: {"description": "Failed to retrieve playlist status"}
-})
+    502: {"description": "Failed to retrieve playlist status"}
+}, status_code=200)
 def playlist_status() -> list[str]:
     response = vlc_rc.status()
     if response.success:
         return [i for i in response.data if "new input:" not in i]
-    raise HTTPException(503, "Failed to retrieve playlist status")
+    raise HTTPException(502, "Failed to retrieve playlist status")
 
 
-@router.post("/pause", responses={**player_responses})
-def toggle_pause() -> Response:
-    return Response(status_code=200 if vlc_rc.pause() else 503)
+@router.post("/playlist/change", responses={
+    204: {"description": "Playlist changed successfully"},
+    404: {"description": "Playlist not found"},
+    502: {"description": "Media player unavailable"}
+}, status_code=204)
+def change_playlist(playlist_name: str = Body()) -> None:
+    playlist = AppDir.PLAYLISTS.value/f"{playlist_name}.m3u"
+    if not playlist.exists():
+        raise HTTPException(404, "Playlist not found")
+    if not all(vlc_rc.clear(),  vlc_rc.add(playlist)):
+        raise HTTPException(502, "Command execution failed")
 
 
-@router.get("/volume", responses={
+@router.get("/audio/volume", responses={
     200: {"description": "Current volume level retrieved successfully"},
-    503: {"description": "Failed to retrieve volume level"}
-})
+    502: {"description": "Media player unavailable"}
+}, status_code=200)
 def volume_level() -> int:
     value = vlc_rc.get_volume()
     if value == -1:
-        raise HTTPException(503, "Failed to retrieve volume level")
+        raise HTTPException(502, "Media player unavailable")
     return int((value / 320) * 125)
 
 
-@router.post("/volume", responses={**player_responses})
-def set_volume(percent: int = Body(ge=0, le=125)) -> Response:
+@router.post("/audio/volume", responses={
+    204: {"description": "Volume set successfully"},
+    502: {"description": "Media player unavailable"},
+}, status_code=204)
+def set_volume(percent: int = Body(ge=0, le=125)) -> None:
     value = int((percent / 125) * 320)
-    if vlc_rc.set_volume(value):
-        data = ConfigSchema(volume=str(value))
-        config_manager.save_section(data.model_dump(exclude_none=True))
-        return Response(status_code=200)
-    return Response(status_code=503)
+    if not vlc_rc.set_volume(value):
+        raise HTTPException(502, "Media player unavailable")
+    data = ConfigSchema(volume=str(value))
+    config_manager.save_section(data.model_dump(exclude_none=True))
 
 
-@router.get("/audio-devices", responses={
+@router.get("/audio/devices", responses={
     200: {"description": "Audio devices retrieved"},
-    503: {"description": "Failed to retrieve audio devices"}
-})
+    502: {"description": "Media player unavailable"}
+}, status_code=200)
 def audio_devices() -> list[VLCRemoteControl.AudioDevice]:
     devices = vlc_rc.get_adev()
     if devices:
         return devices
-    return Response(status_code=503)
+    raise HTTPException(502, "Media player unavailable")
 
 
-@router.post("/default-audio-device", responses={**player_responses})
-def set_default_audio_device(device_id: str = Body()) -> Response:
-    if vlc_rc.set_adev(device_id):
-        data = ConfigSchema(audioDevice=device_id)
-        config_manager.save_section(data.model_dump(exclude_none=True))
-        return Response(status_code=200)
-    return Response(status_code=503)
-
-
-@router.post("/change-playlist", responses={
-    200: {"description": "Playlist updated successfully"},
-    404: {"description": "Playlist not found"},
-    503: {"description": "Command execution failed"}
-})
-def change_playlist(playlist_name: str = Body()) -> Response:
-    playlist = AppDir.PLAYLISTS.value/f"{playlist_name}.m3u"
-    if not playlist.is_file():
-        raise HTTPException(404, "Playlist not found")
-    if vlc_rc.clear() and vlc_rc.add(playlist):
-        return Response(status_code=200)
-    raise HTTPException(503, "Command execution failed")
+@router.post("/audio/default-device", responses={
+    204: {"description": "Default audio device set successfully"},
+    502: {"description": "Media player unavailable"},
+}, status_code=204)
+def set_default_audio_device(device_id: str = Body()) -> None:
+    if not vlc_rc.set_adev(device_id):
+        raise HTTPException(502, "Media player unavailable")
+    data = ConfigSchema(audioDevice=device_id)
+    config_manager.save_section(data.model_dump(exclude_none=True))
