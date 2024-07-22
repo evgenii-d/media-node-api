@@ -1,13 +1,15 @@
 from src.constants import AppDir
 from src.core.syscmd import SysCmdExec
 from src.core.configmgr import ConfigManager
-from src.api.web_browser.schemas import ConfigSchema
+from src.api.web_browser.schemas import ConfigSchema, WindowPosition
 
 config_path = AppDir.CONFIGS.value/"web_browser.ini"
+service_configs_path = AppDir.CONFIGS.value/"web_browser"
 default_config = {
     "DEFAULT": ConfigSchema(
         autostart=False,
-        webPage="about:blank"
+        url="about:blank",
+        position=WindowPosition(x=0, y=0)
     ).model_dump()
 }
 config_manager = ConfigManager(config_path, default_config)

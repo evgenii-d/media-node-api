@@ -20,8 +20,8 @@ def web_browser_config() -> ConfigSchema:
     204: {"description": "Web browser configuration updated successfully"}
 }, status_code=204)
 def update_web_browser_config(data: ConfigSchema) -> None:
-    if data.webPage == "":
-        data.webPage = "about:blank"
+    if data.url == "":
+        data.url = "about:blank"
     config_manager.save_section(data.model_dump(exclude_none=True))
 
 

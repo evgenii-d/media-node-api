@@ -4,4 +4,4 @@ rm -rf ~/.config/chromium/Singleton*
 
 chromium --autoplay-policy=no-user-gesture-required --no-session-restore \
     --disable-cache --disk-cache-size=1 --disk-cache-dir=/dev/null \
-    --kiosk $webPage
+    --kiosk $url
