@@ -1,35 +1,94 @@
-from typing import Literal
+from uuid import uuid4
 from fastapi import APIRouter, HTTPException
 
+from src.constants import AppDir, SystemctlCommand
 from src.core.syscmd import SysCmdExec
-from src.api.web_browser.config import config_manager
-from src.api.web_browser.schemas import ConfigSchema
-
+from src.core.filesys import get_dir_files
+from src.core.configmgr import ConfigManager
+from src.api.web_browser.schemas import (ConfigSchemaIn, ConfigSchemaOut,
+                                         ConfigSchemaUpdate)
 
 router = APIRouter(prefix="/web-browser", tags=["web browser"])
+browser_configs = AppDir.CONFIGS.value/"web_browser"
+browser_configs.mkdir(exist_ok=True)
 
 
-@router.get("/config", responses={
-    200: {"description": "Web browser configuration retrieved successfully"}
+@router.get("/instances", responses={
+    200: {"description": "Browser instances retrieved successfully"},
+    404: {"description": "No browser instances found"}
 }, status_code=200)
-def web_browser_config() -> ConfigSchema:
-    return ConfigSchema.model_validate(config_manager.load_section())
+def browser_instances() -> list[ConfigSchemaOut]:
+    files = get_dir_files(browser_configs)
+    if not files:
+        raise HTTPException(404, "No browser instances found")
+    instances = []
+    for file in files:
+        config = ConfigManager(browser_configs/file).load_section()
+        instances.append(ConfigSchemaOut(**config))
+    return instances
 
 
-@router.patch("/config", responses={
-    204: {"description": "Web browser configuration updated successfully"}
+@router.post("/instances", responses={
+    201: {"description": "Browser instance created successfully"}
+}, status_code=201)
+def create_browser_instance(data: ConfigSchemaIn) -> ConfigSchemaOut:
+    config_path = browser_configs/f"{uuid4().hex}.ini"
+    data = ConfigSchemaOut(**data.model_dump(), uuid=config_path.stem)
+    ConfigManager(config_path).save_section(data.model_dump())
+    return data
+
+
+@router.post("/instances/{command}", responses={
+    204: {"description": "Command executed successfully"},
+    502: {"description": "Failed to execute command"}
 }, status_code=204)
-def update_web_browser_config(data: ConfigSchema) -> None:
+def command_all_instancies(command: SystemctlCommand) -> None:
+    args = ["systemctl", "--user"]
+    match command:
+        case SystemctlCommand.START:
+            args.extend(["start", "web-browser-instances-starter.service"])
+        case _:
+            args.extend([command.value, "web-browser@*.service"])
+    if not SysCmdExec.run(args).success:
+        raise HTTPException(502, f"Failed to execute '{command}' command")
+
+
+@router.patch("/instances/{instance_uuid}", responses={
+    204: {"description": "Browser instance updated successfully"},
+    404: {"description": "Browser instance not found"}
+}, status_code=204)
+def update_browser_instance(instance_uuid: str,
+                            data: ConfigSchemaUpdate) -> None:
+    file = browser_configs/f"{instance_uuid}.ini"
+    if not file.exists():
+        raise HTTPException(404, "Browser instance not found")
     if data.url == "":
         data.url = "about:blank"
-    config_manager.save_section(data.model_dump(exclude_none=True))
+    ConfigManager(file).save_section(data.model_dump(exclude_none=True))
 
 
-@router.post("/service/{command}", responses={
-    204: {"description": "Web browser service command executed successfully"},
-    502: {"description": "Failed to execute web browser service command"}
+@router.delete("/instances/{instance_uuid}", responses={
+    204: {"description": "Browser instance deleted successfully"},
+    404: {"description": "Browser instance not found"}
 }, status_code=204)
-def web_browser_service(command: Literal["start", "stop", "restart"]) -> None:
-    args = ["systemctl", "--user", command, "web-browser.service"]
+def delete_browser_instance(instance_uuid: str) -> None:
+    file = browser_configs/f"{instance_uuid}.ini"
+    if not file.exists():
+        raise HTTPException(404, "Browser instance not found")
+    file.unlink()
+
+
+@router.post("/instances/{instance_uuid}/{command}", responses={
+    204: {"description": "Command executed successfully"},
+    404: {"description": "Browser instance not found"},
+    502: {"description": "Failed to execute command"}
+}, status_code=204)
+def control_browser_instance(instance_uuid: str,
+                             command: SystemctlCommand) -> None:
+    file = browser_configs/f"{instance_uuid}.ini"
+    if not file.exists():
+        raise HTTPException(404, "Browser instance not found")
+    args = ["systemctl", "--user", command.value,
+            f"web-browser@{instance_uuid}.service"]
     if not SysCmdExec.run(args).success:
         raise HTTPException(502, f"Failed to execute '{command}' command")

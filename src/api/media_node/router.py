@@ -1,8 +1,8 @@
 import re
-import uuid
 import shutil
 import socket
 import zipfile
+from uuid import uuid4
 from typing import Literal
 from fastapi import APIRouter, HTTPException, UploadFile, Body
 
@@ -25,7 +25,7 @@ router = APIRouter(prefix="/media-node", tags=["media node"])
 def xrandr_to_dict(xrandr_args: list[str]) -> dict[str, str]:
     result = {}
     for i, word in enumerate(xrandr_args):
-        if word in ["sudo", "xrandr", "--primary"]:
+        if word in ["xrandr", "--primary"]:
             result.update({word: None})
         elif "--" in word:
             result.update({word: xrandr_args[i+1]})
@@ -59,7 +59,7 @@ def hostname() -> str:
     200: {"description": "New hostname generated successfully"}
 }, status_code=200)
 def change_hostname() -> str:
-    data = ConfigSchema(generatedHostname=f"node-{uuid.uuid4().hex}")
+    data = ConfigSchema(generatedHostname=f"node-{uuid4().hex}")
     config_manager.save_section(data.model_dump(exclude_none=True))
     return data.generatedHostname
 
@@ -252,8 +252,8 @@ def available_wifi_networks(interface: str) -> list[WifiNetworkSchema]:
 
 @ router.post("/wifi/connect", responses={
     204: {"description": "Successfully connected to the Wi-Fi network"},
-    500: {"description": "Failed to connect to the Wi-Fi network"},
-    502: {"description": "Failed to enable autoconnect for the Wi-Fi network"}
+    502: {"description": "An error occurred while attempting to "
+          "connect to the Wi-Fi network"}
 }, status_code=204)
 def connect_wifi_network(data: ConnectWifiNetworkSchema) -> None:
     connect_args = ["sudo", "nmcli", "device", "wifi", "connect", data.ssid]
@@ -266,7 +266,7 @@ def connect_wifi_network(data: ConnectWifiNetworkSchema) -> None:
 
     connect = SysCmdExec.run(connect_args)
     if not connect.success:
-        raise HTTPException(500, f"Failed to connect to '{data.ssid}'")
+        raise HTTPException(502, f"Failed to connect to '{data.ssid}'")
 
     enable_autoconnect = SysCmdExec.run(["sudo", "nmcli", "connection",
                                          "modify", data.ssid,
@@ -278,13 +278,13 @@ def connect_wifi_network(data: ConnectWifiNetworkSchema) -> None:
 
 @ router.post("/wifi/disconnect", responses={
     204: {"description": "Successfully disconnected from the Wi-Fi network"},
-    500: {"description": "Failed to disconnect from the Wi-Fi network"},
-    502: {"description": "Failed to disable autoconnect for the Wi-Fi network"}
+    502: {"description": "An error occurred while attempting to "
+          "disconnect from the Wi-Fi network"}
 }, status_code=204)
 def disconnect_wifi_network(ssid: str = Body()) -> None:
     disconnect = SysCmdExec.run(["sudo", "nmcli", "connection", "down", ssid])
     if not disconnect.success:
-        raise HTTPException(500, "Failed to disconnect interface")
+        raise HTTPException(502, "Failed to disconnect interface")
 
     disable_autoconnect = SysCmdExec.run(["sudo", "nmcli", "connection",
                                           "modify", ssid,
@@ -298,7 +298,7 @@ def disconnect_wifi_network(ssid: str = Body()) -> None:
     502: {"description": "Failed to retrieve list of connected displays"}
 }, status_code=200)
 def connected_displays() -> list[ConnectedDisplay]:
-    command = SysCmdExec.run(["sudo", "xrandr"])
+    command = SysCmdExec.run(["xrandr"])
     if not command.success:
         raise HTTPException(502, "Command execution failed")
 
@@ -330,12 +330,12 @@ def connected_displays() -> list[ConnectedDisplay]:
 
 @ router.post("/displays/detect/{command}", responses={
     204: {"description": "Display detection command executed successfully"},
-    500: {"description": "Failed to execute display detection command"}
+    502: {"description": "Failed to execute display detection command"}
 }, status_code=204)
-def displays_detection(command: Literal["start", "stop"]) -> None:
+def displays_detection(command: Literal["start", "stop", "restart"]) -> None:
     args = ["systemctl", "--user", command, "display-detector.service"]
     if not SysCmdExec.run(args).success:
-        raise HTTPException(500, f"Failed to {command} the display detection")
+        raise HTTPException(502, f"Failed to {command} the display detection")
 
 
 @ router.get("/displays/config", responses={
@@ -370,12 +370,12 @@ def displays_config() -> list[DisplayConfig]:
     return result
 
 
-@ router.patch("/displays/config", responses={
-    204: {"description": "Display configuration updated successfully"},
-    500: {"description": "Failed to update display configuration"}
+@ router.post("/displays/config", responses={
+    204: {"description": "Display configuration applied successfully"},
+    502: {"description": "Failed to process display configuration"}
 }, status_code=204)
-def update_display_config(display: DisplayConfig) -> None:
-    args = ["sudo", "xrandr", "--output", display.name]
+def apply_display_config(display: DisplayConfig) -> None:
+    args = ["xrandr", "--output", display.name]
     if display.resolution:
         width, height = display.resolution.width, display.resolution.height
         args.extend(["--mode", f"{width}x{height}"])

@@ -1,12 +1,13 @@
 #!/bin/bash
-app_dir="$(dirname "$(dirname "$(realpath $0)")")"
+app_dir="$(dirname "$(dirname "$(realpath "$0")")")"
+scripts_dir="$app_dir/scripts"
 
-if [ ! -z "$generatedHostname" ] &&
+# Check if generatedHostname is set and different from the current hostname
+if [ -n "$generatedHostname" ] &&
     [ "$(hostnamectl hostname)" != "$generatedHostname" ]; then
-    echo "Set new hostname"
-    sudo hostnamectl set-hostname "$generatedHostname"
-    sleep 5 && sudo shutdown -r now
+    echo "Change hostname"
+    sudo "$scripts_dir/change_hostname.sh" "$generatedHostname"
 fi
 
-export PYTHONPATH=$app_dir
-$app_dir/venv/bin/python -m src.main
+export PYTHONPATH="$app_dir"
+"$app_dir/venv/bin/python" -m src.main

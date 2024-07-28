@@ -9,3 +9,9 @@ class AppDir(Enum):
     PLAYLISTS = BASE/"playlists"
     STATIC = BASE/"static"
     STATIC_PUBLIC = BASE/"static/public"
+
+
+class SystemctlCommand(Enum):
+    START = "start"
+    STOP = "stop"
+    RESTART = "restart"
