@@ -4,10 +4,8 @@ from fastapi.responses import FileResponse
 from src.constants import AppDir
 from src.api.media_files.constants import MIMEType
 from src.api.media_files.schemas import (AvailableFilesSchema,
-                                         UploadOutSchema,
-                                         DeletedFilesSchema)
-from src.core.filesys import (get_dir_files, del_files_from_dir,
-                              get_dir_size, check_dir_files,
+                                         UploadOutSchema, MimeTypeSchema)
+from src.core.filesys import (get_dir_files, get_dir_size,
                               aio_save_files_to_dir)
 
 
@@ -65,8 +63,9 @@ def download_file(filename: str) -> FileResponse:
     raise HTTPException(404, "File not found")
 
 
-@router.get("/types", responses={
+@router.get("/mime-types", responses={
     200: {"description": "Supported MIME types retrieved successfully"}
 }, status_code=200)
-def supported_types() -> list[str]:
-    return [member.name.lower() for member in MIMEType]
+def supported_types() -> list[MimeTypeSchema]:
+    return [MimeTypeSchema(extension=member.name.lower(), type=member.value)
+            for member in MIMEType]

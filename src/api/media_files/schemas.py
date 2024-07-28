@@ -15,3 +15,8 @@ class UploadOutSchema(BaseModel):
 class DeletedFilesSchema(BaseModel):
     deleted: list[str]
     missing: list[str]
+
+
+class MimeTypeSchema(BaseModel):
+    extension: str
+    type: str

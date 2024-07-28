@@ -1,5 +1,6 @@
 from pathlib import Path
 from fastapi import APIRouter, Body, HTTPException
+from fastapi.responses import JSONResponse
 
 from src.constants import AppDir
 from src.core.filesys import get_dir_files, check_dir_files
@@ -20,11 +21,13 @@ def available_playlists() -> list[str]:
 
 
 @router.put("/", responses={
-    200: {"description": "Playlist updated successfully"},
-    201: {"description": "Playlist created successfully"},
+    200: {"description": "Playlist updated successfully",
+          "model": PlaylistSchema},
+    201: {"description": "Playlist created successfully",
+          "model": PlaylistSchema},
     404: {"description": "Playlist files not found"}
 }, status_code=201)
-def update_playlist(playlist: PlaylistSchema) -> PlaylistSchema:
+def create_or_update_playlist(playlist: PlaylistSchema) -> JSONResponse:
     files = check_dir_files(playlist.files, AppDir.MEDIA.value)
     if len(files.available) == 0:
         raise HTTPException(404, "Playlist files not found")
@@ -32,10 +35,9 @@ def update_playlist(playlist: PlaylistSchema) -> PlaylistSchema:
     is_exists = (AppDir.PLAYLISTS.value/playlist.name).exists()
     paths = [AppDir.MEDIA.value/file for file in files.available]
     create_playlist(playlist.name, AppDir.PLAYLISTS.value, paths)
+
     new_playlist = PlaylistSchema(name=playlist.name, files=files.available)
-    if is_exists:
-        return new_playlist, 200
-    return new_playlist, 201
+    return JSONResponse(new_playlist.model_dump(), 200 if is_exists else 201)
 
 
 @router.delete("/{playlist_name}", responses={
