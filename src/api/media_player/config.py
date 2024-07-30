@@ -18,7 +18,8 @@ default_config = {
         audioOutput=AudioOutputModule.AUTO,
         audioDevice="",
         playback=PlaybackOption.LOOP.value,
-        imageDuration=10
+        imageDuration=10,
+        screen=0
     ).model_dump()
 }
 config_manager = ConfigManager(config_path, default_config)

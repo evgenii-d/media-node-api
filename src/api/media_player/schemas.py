@@ -16,6 +16,7 @@ class ConfigSchema(BaseModel, use_enum_values=True):
     audioDevice: Optional[str] = None
     playback: Optional[str] = None
     imageDuration: Optional[float] = None
+    screen: Optional[int] = Field(default=None, ge=0)
 
     @field_validator("playback")
     @classmethod
