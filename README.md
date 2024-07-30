@@ -148,3 +148,11 @@ dtoverlay=gpio-shutdown
 
 <https://www.chromium.org/developers/how-tos/run-chromium-with-flags/>
 <https://peter.sh/experiments/chromium-command-line-switches/>
+
+### Desktop Entry Specification
+
+<https://specifications.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html#introduction>
+
+### Debian X session
+
+<https://wiki.debian.org/Xsession>

@@ -3,6 +3,7 @@ user_services_dir="$HOME/.config/systemd/user"
 app_dir="$(dirname "$(dirname "$(realpath "$0")")")"
 scripts_dir="$app_dir/scripts"
 configs_dir="$app_dir/resources/configs"
+openbox_autostart="$HOME/.config/openbox/autostart.sh"
 
 # Check for root privileges
 if [ "$EUID" -eq 0 ]; then
@@ -10,32 +11,35 @@ if [ "$EUID" -eq 0 ]; then
     exit 1
 fi
 
+echo
 echo "Enable user lingering"
 loginctl enable-linger "$(logname)"
 
+echo
 echo "Creating directory for services under current user"
 mkdir -p "$user_services_dir"
 
+echo
 echo "Create systemd user services: "
-echo "* Media Node API"
+echo "+ Media Node API"
 cat <<EOF >"$user_services_dir/media-node-api.service"
 [Unit]
 Description=Media Node API
-After=graphical.target network-online.target
+After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=exec
 Restart=always
+Environment="DISPLAY=:0"
 EnvironmentFile=$configs_dir/media_node.ini
 ExecStart=$scripts_dir/run_app.sh
 
 [Install]
-WantedBy=graphical.target
 WantedBy=default.target
 EOF
 
-echo "* VLC Media Player"
+echo "+ VLC Media Player"
 cat <<EOF >"$user_services_dir/media-player.service"
 [Unit]
 Description=VLC Media Player + RC Interface
@@ -48,13 +52,9 @@ EnvironmentFile=$configs_dir/playlists.ini
 ExecStart=$scripts_dir/run_vlc.sh
 ExecStartPost=sleep 3
 ExecStartPost=python3 $scripts_dir/vlc_audio.py
-
-[Install]
-WantedBy=graphical.target
-WantedBy=default.target
 EOF
 
-echo "* Chromium Browser Instance"
+echo "+ Chromium Browser Instance"
 cat <<EOF >"$user_services_dir/web-browser@.service"
 [Unit]
 Description=Chromium Browser. Instance %i
@@ -64,41 +64,20 @@ After=graphical.target
 Restart=on-failure
 EnvironmentFile=$configs_dir/web_browser/%i.ini
 ExecStart=$scripts_dir/run_web_browser.sh
-
-[Install]
-WantedBy=graphical.target
-WantedBy=default.target
 EOF
 
-echo "* Chromium Browser Instances Autostart"
-cat <<EOF >"$user_services_dir/web-browser-instances-autostart.service"
+echo "+ Chromium Browser Instances Manager"
+cat <<EOF >"$user_services_dir/web-browser-instances-manager@.service"
 [Unit]
-Description=Chromium Browser Instances Autostart
+Description=Chromium Browser Instances Manager. Command %i
 After=graphical.target
 
 [Service]
-ExecStart=$scripts_dir/web_browser_instances_manager.sh autostart
-
-[Install]
-WantedBy=graphical.target
-WantedBy=default.target
+Type=oneshot
+ExecStart=$scripts_dir/web_browser_instances_manager.sh %i
 EOF
 
-echo "* Chromium Browser Instances Starter"
-cat <<EOF >"$user_services_dir/web-browser-instances-starter.service"
-[Unit]
-Description=Start All Chromium Browser Instances
-After=graphical.target
-
-[Service]
-ExecStart=$scripts_dir/web_browser_instances_manager.sh start-all
-
-[Install]
-WantedBy=graphical.target
-WantedBy=default.target
-EOF
-
-echo "* Display Detector"
+echo "+ Display Detector"
 cat <<EOF >"$user_services_dir/display-detector.service"
 [Unit]
 Description=Display Detector
@@ -107,17 +86,24 @@ After=graphical.target
 [Service]
 Restart=on-failure
 ExecStart=python3 $scripts_dir/display_detector.py
-
-[Install]
-WantedBy=graphical.target
-WantedBy=default.target
 EOF
 
-echo "Enable services: "
-echo "* VLC Media Player"
+echo
+echo "Enable Media Node API service"
 systemctl --user enable media-node-api.service
 
-echo "* Chromium Browser Instances Autostart"
-systemctl --user enable web-browser-instances-autostart.service
+echo
+echo "Create openbox autostart file: "
+echo "+ xrandr execution to configure displays"
+echo "+ Chromium Browser Instances Autostart"
 
+mkdir -p "$HOME/.config/openbox"
+cat <<EOF >"$openbox_autostart"
+#!/bin/bash
+sleep 10 && bash $configs_dir/xrandr.txt &
+$scripts_dir/web_browser_instances_manager.sh autostart &
+EOF
+chmod +x "$openbox_autostart"
+
+echo
 echo Done
