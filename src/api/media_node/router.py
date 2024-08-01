@@ -79,7 +79,7 @@ def system_control(command: Literal["poweroff", "reboot"]) -> None:
         raise HTTPException(502, f"Failed to execute '{command}' command")
 
 
-@ router.put("/static", responses={
+@ router.post("/static", responses={
     204: {"description": "File successfully uploaded"},
     400: {"description": "Invalid file type. Accept only .zip files"}
 }, status_code=204)
@@ -121,7 +121,7 @@ def audio_devices() -> list[AudioDeviceSchema]:
     return result
 
 
-@ router.get("/audio/default-device", responses={
+@ router.get("/audio/devices/default", responses={
     200: {"description": "Default Audio device retrieved successfully"},
     502: {"description": "Failed to retrieve default audio device"}
 }, status_code=200)
@@ -139,7 +139,7 @@ def default_audio_device() -> AudioDeviceSchema:
         raise HTTPException(502, message) from e
 
 
-@ router.post("/audio/default-device", responses={
+@ router.post("/audio/devices/default", responses={
     204: {"description": "Default audio device set successfully"},
     502: {"description": "Command execution failed"}
 }, status_code=204)

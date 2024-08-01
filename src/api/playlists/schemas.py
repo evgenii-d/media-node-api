@@ -1,11 +1,7 @@
-from typing import Annotated, Optional
+from typing import Annotated
 from pydantic import BaseModel, StringConstraints, field_validator
 
 from src.core.filesys import secure_filename
-
-
-class ConfigSchema(BaseModel):
-    defaultPlaylist: Optional[str] = None
 
 
 class PlaylistSchema(BaseModel):

@@ -1,130 +1,271 @@
-from typing import Literal
+from pathlib import Path
+from uuid import uuid4
 from fastapi import APIRouter, Body, HTTPException
 
-from src.constants import AppDir
+from src.constants import AppDir, SystemctlCommand
 from src.core.vlcrc import VLCRemoteControl
 from src.core.syscmd import SysCmdExec
-from src.api.media_player.config import config_manager, vlc_rc
-from src.api.media_player.schemas import ConfigSchema, PlayerControlCommands
+from src.core.filesys import get_dir_files
+from src.core.configmgr import ConfigManager
+from src.api.media_player.schemas import (PlayerControlCommands,
+                                          ConfigSchemaIn,
+                                          ConfigSchemaOut, ConfigFileSchema,
+                                          ConfigSchemaUpdate)
 
 router = APIRouter(prefix="/media-player", tags=["media player"])
+player_configs = AppDir.CONFIGS.value/"media_player"
+player_configs.mkdir(exist_ok=True)
 
 
-@router.get("/config", responses={
-    200: {"description": "Media player configuration retrieved successfully"}
+def get_config_path(instance_uuid: str) -> Path:
+    file_path = player_configs/f"{instance_uuid}.ini"
+    if file_path.exists():
+        return file_path
+    raise HTTPException(404, "Player instance not found")
+
+
+@router.get("/instances", responses={
+    200: {"description": "Player instances retrieved successfully"},
+    404: {"description": "No player instances found"}
 }, status_code=200)
-def player_config() -> ConfigSchema:
-    return ConfigSchema.model_validate(config_manager.load_section())
+def player_instances() -> list[ConfigSchemaOut]:
+    files = get_dir_files(player_configs)
+    if not files:
+        raise HTTPException(404, "No player instances found")
+
+    instances = []
+    for file in files:
+        data = ConfigManager(player_configs/file).load_section()
+        config = ConfigSchemaOut(**data)
+        config.playlist = Path(config.playlist).stem
+        instances.append(config)
+    return instances
 
 
-@router.patch("/config", responses={
-    204: {"description": "Media player configuration updated successfully"}
+@router.post("/instances", responses={
+    201: {"description": "Player instance created successfully"}
+}, status_code=201)
+def create_player_instance(data: ConfigSchemaIn) -> ConfigSchemaOut:
+    port = 50000
+    ports: list[int] = []
+
+    # Extract port numbers from player configuration files
+    for file in player_configs.iterdir():
+        value = ConfigSchemaOut(**ConfigManager(file).load_section()).rcPort
+        ports.append(value)
+
+    # If there are any missing ports, use the smallest missing port.
+    # Otherwise, use the next available port number after the highest.
+    if ports:
+        ports_range = list(range(min(ports), max(ports) + 1))
+        missing_ports = list(set(ports_range) - set(ports))
+        port = min(missing_ports) if missing_ports else max(ports) + 1
+
+    new_config_path = player_configs/f"{uuid4().hex}.ini"
+    new_config = ConfigFileSchema(
+        **data.model_dump(),
+        rcPort=port,
+        uuid=new_config_path.stem
+    )
+    ConfigManager(new_config_path).save_section(new_config.model_dump())
+    return ConfigSchemaOut(**new_config.model_dump())
+
+
+@router.patch("/instances/{instance_uuid}", responses={
+    204: {"description": "Player instance updated successfully"},
+    404: {"description": "Player instance not found"}
 }, status_code=204)
-def update_player_config(data: ConfigSchema) -> None:
-    config_manager.save_section(data.model_dump(exclude_none=True))
+def update_player_instance(instance_uuid: str,
+                           data: ConfigSchemaUpdate) -> None:
+    file = player_configs/f"{instance_uuid}.ini"
+    if not file.exists():
+        raise HTTPException(404, "Player instance not found")
+    ConfigManager(file).save_section(data.model_dump(exclude_none=True))
 
 
-@router.post("/service/{command}", responses={
-    204: {"description": "Media player service command executed"},
-    502: {"description": "Failed to execute media player service command"}
+@router.delete("/instances/{instance_uuid}", responses={
+    204: {"description": "Player instance deleted successfully"},
+    404: {"description": "Player instance not found"}
 }, status_code=204)
-def player_service(command: Literal["start", "stop", "restart"]) -> None:
-    args = ["systemctl", "--user", command, "media-player.service"]
+def delete_player_instance(instance_uuid: str) -> None:
+    file = player_configs/f"{instance_uuid}.ini"
+    if not file.exists():
+        raise HTTPException(404, "Player instance not found")
+    file.unlink()
+
+
+@router.post("/instances/services/{command}", responses={
+    204: {"description": "Command executed successfully"},
+    502: {"description": "Failed to execute command"}
+}, status_code=204)
+def command_player_services(command: SystemctlCommand) -> None:
+    args = ["systemctl", "--user"]
+    match command:
+        case SystemctlCommand.START:
+            args.extend(["start",
+                         "media-player-instances-manager@start-all.service"])
+        case _:
+            args.extend([command.value, "media-player@*.service"])
     if not SysCmdExec.run(args).success:
         raise HTTPException(502, f"Failed to execute '{command}' command")
 
 
-@router.post("/control/{command}", responses={
+@router.post("/{instance_uuid}/service/{command}", responses={
+    204: {"description": "Command executed successfully"},
+    404: {"description": "Player instance not found"},
+    502: {"description": "Failed to execute command"}
+}, status_code=204)
+def command_player_service(instance_uuid: str,
+                           command: SystemctlCommand) -> None:
+    file = player_configs/f"{instance_uuid}.ini"
+    if not file.exists():
+        raise HTTPException(404, "Player instance not found")
+    args = ["systemctl", "--user", command.value,
+            f"media-player@{instance_uuid}.service"]
+    if not SysCmdExec.run(args).success:
+        raise HTTPException(502, f"Failed to execute '{command}' command")
+
+
+@router.post("/{instance_uuid}/control/{command}", responses={
     204: {"description": "Media player command executed successfully"},
+    404: {"description": "Player instance not found"},
     502: {"description": "Media player unavailable"}
 }, status_code=204)
-def player_control(command: PlayerControlCommands) -> None:
-    if not vlc_rc.exec(command).success:
+def player_control(instance_uuid: str,
+                   command: PlayerControlCommands) -> None:
+    config_path = get_config_path(instance_uuid)
+    config = ConfigFileSchema(**ConfigManager(config_path).load_section())
+    vlcrc = VLCRemoteControl("127.0.0.1", config.rcPort)
+
+    if not vlcrc.exec(command).success:
         raise HTTPException(502, "Media player unavailable")
 
 
-@router.post("/playlist/goto", responses={
+@router.post("/{instance_uuid}/playlist/goto", responses={
     204: {"description": "Successfully navigated to the playlist index"},
+    404: {"description": "Player instance not found"},
     502: {"description": "Media player unavailable"}
 }, status_code=204)
-def goto_playlist_index(index: int = Body(gt=0)) -> None:
-    if not vlc_rc.goto(index):
+def goto_playlist_index(instance_uuid: str, index: int = Body(gt=0)) -> None:
+    config_path = get_config_path(instance_uuid)
+    config = ConfigFileSchema(**ConfigManager(config_path).load_section())
+    vlcrc = VLCRemoteControl("127.0.0.1", config.rcPort)
+
+    if not vlcrc.goto(index):
         raise HTTPException(502, "Media player unavailable")
 
 
-@router.post("/playlist/clear", responses={
+@router.post("/{instance_uuid}/playlist/clear", responses={
     204: {"description": "Playlist cleared successfully"},
+    404: {"description": "Player instance not found"},
     502: {"description": "Media player unavailable"}
 }, status_code=204)
-def clear_playlist() -> None:
-    if not vlc_rc.clear():
+def clear_playlist(instance_uuid: str) -> None:
+    config_path = get_config_path(instance_uuid)
+    config = ConfigFileSchema(**ConfigManager(config_path).load_section())
+    vlcrc = VLCRemoteControl("127.0.0.1", config.rcPort)
+
+    if not vlcrc.clear():
         raise HTTPException(502, "Media player unavailable")
 
 
-@router.get("/playlist/status", responses={
+@router.get("/{instance_uuid}/playlist/status", responses={
     200: {"description": "Playlist status retrieved successfully"},
+    404: {"description": "Player instance not found"},
     502: {"description": "Failed to retrieve playlist status"}
 }, status_code=200)
-def playlist_status() -> list[str]:
-    response = vlc_rc.status()
+def playlist_status(instance_uuid: str) -> list[str]:
+    config_path = get_config_path(instance_uuid)
+    config = ConfigFileSchema(**ConfigManager(config_path).load_section())
+    vlcrc = VLCRemoteControl("127.0.0.1", config.rcPort)
+
+    response = vlcrc.status()
     if response.success:
         return [i for i in response.data if "new input:" not in i]
     raise HTTPException(502, "Failed to retrieve playlist status")
 
 
-@router.post("/playlist/change", responses={
+@router.post("/{instance_uuid}/playlist/change", responses={
     204: {"description": "Playlist changed successfully"},
-    404: {"description": "Playlist not found"},
+    404: {"description": "Player instance or playlist not found"},
     502: {"description": "Media player unavailable"}
 }, status_code=204)
-def change_playlist(playlist_name: str = Body()) -> None:
+def change_playlist(instance_uuid: str, playlist_name: str = Body()) -> None:
+    config_path = get_config_path(instance_uuid)
+    config = ConfigFileSchema(**ConfigManager(config_path).load_section())
+    vlcrc = VLCRemoteControl("127.0.0.1", config.rcPort)
+
     playlist = AppDir.PLAYLISTS.value/f"{playlist_name}.m3u"
     if not playlist.exists():
         raise HTTPException(404, "Playlist not found")
-    if not all(vlc_rc.clear(),  vlc_rc.add(playlist)):
+
+    if not all(vlcrc.clear(),  vlcrc.add(playlist)):
         raise HTTPException(502, "Command execution failed")
 
 
-@router.get("/audio/volume", responses={
+@router.get("/{instance_uuid}/audio/volume", responses={
     200: {"description": "Current volume level retrieved successfully"},
+    404: {"description": "Player instance not found"},
     502: {"description": "Media player unavailable"}
 }, status_code=200)
-def volume_level() -> int:
-    value = vlc_rc.get_volume()
+def volume_level(instance_uuid: str) -> int:
+    config_path = get_config_path(instance_uuid)
+    config = ConfigFileSchema(**ConfigManager(config_path).load_section())
+    vlcrc = VLCRemoteControl("127.0.0.1", config.rcPort)
+
+    value = vlcrc.get_volume()
     if value == -1:
         raise HTTPException(502, "Media player unavailable")
     return int((value / 320) * 125)
 
 
-@router.post("/audio/volume", responses={
+@router.post("/{instance_uuid}/audio/volume", responses={
     204: {"description": "Volume set successfully"},
+    404: {"description": "Player instance not found"},
     502: {"description": "Media player unavailable"},
 }, status_code=204)
-def set_volume(percent: int = Body(ge=0, le=125)) -> None:
+def set_volume(instance_uuid: str, percent: int = Body(ge=0, le=125)) -> None:
+    config_path = get_config_path(instance_uuid)
+    config = ConfigFileSchema(**ConfigManager(config_path).load_section())
+    vlcrc = VLCRemoteControl("127.0.0.1", config.rcPort)
+
     value = int((percent / 125) * 320)
-    if not vlc_rc.set_volume(value):
+    if not vlcrc.set_volume(value):
         raise HTTPException(502, "Media player unavailable")
-    data = ConfigSchema(volume=str(value))
-    config_manager.save_section(data.model_dump(exclude_none=True))
+    data = ConfigSchemaUpdate(volume=value).model_dump(exclude_none=True)
+    ConfigManager(config_path).save_section(data)
 
 
-@router.get("/audio/devices", responses={
+@router.get("/{instance_uuid}/audio/devices", responses={
     200: {"description": "Audio devices retrieved"},
+    404: {"description": "Player instance not found"},
     502: {"description": "Media player unavailable"}
 }, status_code=200)
-def audio_devices() -> list[VLCRemoteControl.AudioDevice]:
-    devices = vlc_rc.get_adev()
+def audio_devices(instance_uuid: str) -> list[VLCRemoteControl.AudioDevice]:
+    config_path = get_config_path(instance_uuid)
+    config = ConfigFileSchema(**ConfigManager(config_path).load_section())
+    vlcrc = VLCRemoteControl("127.0.0.1", config.rcPort)
+
+    devices = vlcrc.get_adev()
     if devices:
         return devices
     raise HTTPException(502, "Media player unavailable")
 
 
-@router.post("/audio/default-device", responses={
+@router.post("/{instance_uuid}/audio/devices/default", responses={
     204: {"description": "Default audio device set successfully"},
+    404: {"description": "Player instance not found"},
     502: {"description": "Media player unavailable"},
 }, status_code=204)
-def set_default_audio_device(device_id: str = Body()) -> None:
-    if not vlc_rc.set_adev(device_id):
+def set_default_audio_device(instance_uuid: str,
+                             device_id: str = Body()) -> None:
+    config_path = get_config_path(instance_uuid)
+    config = ConfigFileSchema(**ConfigManager(config_path).load_section())
+    vlcrc = VLCRemoteControl("127.0.0.1", config.rcPort)
+
+    if not vlcrc.set_adev(device_id):
         raise HTTPException(502, "Media player unavailable")
-    data = ConfigSchema(audioDevice=device_id)
-    config_manager.save_section(data.model_dump(exclude_none=True))
+    data = ConfigSchemaUpdate(
+        audioDevice=device_id
+    ).model_dump(exclude_none=True)
+    ConfigManager(config_path).save_section(data)

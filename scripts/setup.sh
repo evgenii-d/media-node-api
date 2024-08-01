@@ -39,19 +39,42 @@ ExecStart=$scripts_dir/run_app.sh
 WantedBy=default.target
 EOF
 
-echo "+ VLC Media Player"
-cat <<EOF >"$user_services_dir/media-player.service"
+# echo "+ VLC Media Player"
+# cat <<EOF >"$user_services_dir/media-player.service"
+# [Unit]
+# Description=VLC Media Player + RC Interface
+# After=graphical.target
+
+# [Service]
+# Restart=on-failure
+# EnvironmentFile=$configs_dir/media_player.ini
+# EnvironmentFile=$configs_dir/playlists.ini
+# ExecStart=$scripts_dir/run_vlc.sh
+# ExecStartPost=sleep 3
+# ExecStartPost=python3 $scripts_dir/vlc_audio.py
+# EOF
+
+echo "+ VLC Media Player Instance"
+cat <<EOF >"$user_services_dir/media-player@.service"
 [Unit]
-Description=VLC Media Player + RC Interface
+Description=VLC Media Player + RC Interface. Instance %i
 After=graphical.target
 
 [Service]
 Restart=on-failure
-EnvironmentFile=$configs_dir/media_player.ini
-EnvironmentFile=$configs_dir/playlists.ini
-ExecStart=$scripts_dir/run_vlc.sh
-ExecStartPost=sleep 3
-ExecStartPost=python3 $scripts_dir/vlc_audio.py
+EnvironmentFile=$configs_dir/media_player/%i.ini
+ExecStart=$scripts_dir/run_media_player.sh
+EOF
+
+echo "+ VLC Media Player Instances Manager"
+cat <<EOF >"$user_services_dir/media-player-instances-manager@.service"
+[Unit]
+Description=VLC Media Player Instances Manager. Command %i
+After=graphical.target
+
+[Service]
+Type=oneshot
+ExecStart=$scripts_dir/media_player_instances_manager.sh %i
 EOF
 
 echo "+ Chromium Browser Instance"
