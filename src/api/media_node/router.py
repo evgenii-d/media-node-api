@@ -355,10 +355,10 @@ def displays_config() -> list[DisplayConfig]:
         args = xrandr_to_dict(line.split())
         display = DisplayConfig(name=args["--output"])
 
-        display.primary = "--primary" in args
-        if "--resolution" in args:
+        display.primary = True if "--primary" in args else None
+        if "--mode" in args:
             width, height = args["--mode"].split("x")
-            display.resolution.width, display.resolution.height = width, height
+            display.resolution = DisplayResolution(width=width, height=height)
         if "--rotation" in args:
             display.rotation = args["--rotation"]
         if "--position" in args:

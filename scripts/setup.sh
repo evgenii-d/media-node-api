@@ -16,11 +16,11 @@ echo "Enable user lingering"
 loginctl enable-linger "$(logname)"
 
 echo
-echo "Creating directory for services under current user"
+echo "Create directory for user services"
 mkdir -p "$user_services_dir"
 
 echo
-echo "Create systemd user services: "
+echo "Create systemd user services:"
 echo "+ Media Node API"
 cat <<EOF >"$user_services_dir/media-node-api.service"
 [Unit]
@@ -39,21 +39,6 @@ ExecStart=$scripts_dir/run_app.sh
 WantedBy=default.target
 EOF
 
-# echo "+ VLC Media Player"
-# cat <<EOF >"$user_services_dir/media-player.service"
-# [Unit]
-# Description=VLC Media Player + RC Interface
-# After=graphical.target
-
-# [Service]
-# Restart=on-failure
-# EnvironmentFile=$configs_dir/media_player.ini
-# EnvironmentFile=$configs_dir/playlists.ini
-# ExecStart=$scripts_dir/run_vlc.sh
-# ExecStartPost=sleep 3
-# ExecStartPost=python3 $scripts_dir/vlc_audio.py
-# EOF
-
 echo "+ VLC Media Player Instance"
 cat <<EOF >"$user_services_dir/media-player@.service"
 [Unit]
@@ -64,6 +49,8 @@ After=graphical.target
 Restart=on-failure
 EnvironmentFile=$configs_dir/media_player/%i.ini
 ExecStart=$scripts_dir/run_media_player.sh
+ExecStartPost=sleep 5
+ExecStartPost=python3 $scripts_dir/media_player_audio.py
 EOF
 
 echo "+ VLC Media Player Instances Manager"
@@ -118,13 +105,17 @@ systemctl --user enable media-node-api.service
 echo
 echo "Create openbox autostart file: "
 echo "+ xrandr execution to configure displays"
+echo "+ Set system audio device and volume"
+echo "+ VLC Media Player Instances Autostart"
 echo "+ Chromium Browser Instances Autostart"
 
 mkdir -p "$HOME/.config/openbox"
 cat <<EOF >"$openbox_autostart"
 #!/bin/bash
 sleep 10 && bash $configs_dir/xrandr.txt &
-$scripts_dir/web_browser_instances_manager.sh autostart &
+$scripts_dir/system_audio.sh
+systemctl --user start media-player-instances-manager@autostart.service
+systemctl --user start web-browser-instances-manager@autostart.service
 EOF
 chmod +x "$openbox_autostart"
 

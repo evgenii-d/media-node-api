@@ -63,7 +63,7 @@ def delete_browser_instance(instance_uuid: str) -> None:
     file.unlink()
 
 
-@router.post("/instances/services/{command}", responses={
+@router.post("/instances/manager/{command}", responses={
     204: {"description": "Command executed successfully"},
     502: {"description": "Failed to execute command"}
 }, status_code=204)

@@ -1,5 +1,6 @@
-from pathlib import Path
+from math import ceil
 from uuid import uuid4
+from pathlib import Path
 from fastapi import APIRouter, Body, HTTPException
 
 from src.constants import AppDir, SystemctlCommand
@@ -7,10 +8,9 @@ from src.core.vlcrc import VLCRemoteControl
 from src.core.syscmd import SysCmdExec
 from src.core.filesys import get_dir_files
 from src.core.configmgr import ConfigManager
-from src.api.media_player.schemas import (PlayerControlCommands,
-                                          ConfigSchemaIn,
-                                          ConfigSchemaOut, ConfigFileSchema,
-                                          ConfigSchemaUpdate)
+from src.api.media_player.constants import PlayerControlCommands
+from src.api.media_player.schemas import (ConfigFileSchema, ConfigSchemaIn,
+                                          ConfigSchemaOut, ConfigSchemaUpdate)
 
 router = APIRouter(prefix="/media-player", tags=["media player"])
 player_configs = AppDir.CONFIGS.value/"media_player"
@@ -94,11 +94,11 @@ def delete_player_instance(instance_uuid: str) -> None:
     file.unlink()
 
 
-@router.post("/instances/services/{command}", responses={
+@router.post("/instances/manager/{command}", responses={
     204: {"description": "Command executed successfully"},
     502: {"description": "Failed to execute command"}
 }, status_code=204)
-def command_player_services(command: SystemctlCommand) -> None:
+def manage_player_instances(command: SystemctlCommand) -> None:
     args = ["systemctl", "--user"]
     match command:
         case SystemctlCommand.START:
@@ -107,7 +107,8 @@ def command_player_services(command: SystemctlCommand) -> None:
         case _:
             args.extend([command.value, "media-player@*.service"])
     if not SysCmdExec.run(args).success:
-        raise HTTPException(502, f"Failed to execute '{command}' command")
+        message = f"Failed to execute '{command.value}' command"
+        raise HTTPException(502, message)
 
 
 @router.post("/{instance_uuid}/service/{command}", responses={
@@ -123,7 +124,8 @@ def command_player_service(instance_uuid: str,
     args = ["systemctl", "--user", command.value,
             f"media-player@{instance_uuid}.service"]
     if not SysCmdExec.run(args).success:
-        raise HTTPException(502, f"Failed to execute '{command}' command")
+        message = f"Failed to execute '{command.value}' command"
+        raise HTTPException(502, message)
 
 
 @router.post("/{instance_uuid}/control/{command}", responses={
@@ -137,7 +139,7 @@ def player_control(instance_uuid: str,
     config = ConfigFileSchema(**ConfigManager(config_path).load_section())
     vlcrc = VLCRemoteControl("127.0.0.1", config.rcPort)
 
-    if not vlcrc.exec(command).success:
+    if not vlcrc.exec(command.value).success:
         raise HTTPException(502, "Media player unavailable")
 
 
@@ -216,7 +218,7 @@ def volume_level(instance_uuid: str) -> int:
     value = vlcrc.get_volume()
     if value == -1:
         raise HTTPException(502, "Media player unavailable")
-    return int((value / 320) * 125)
+    return ceil((value / 320) * 125)
 
 
 @router.post("/{instance_uuid}/audio/volume", responses={

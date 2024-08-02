@@ -1,13 +1,12 @@
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Optional
 from pydantic import BaseModel, Field, field_validator
 
 from src.constants import AppDir
 from src.api.media_player.constants import (AudioOutputModule,
                                             VideoOutputModule,
-                                            PlaybackOption)
-
-PlayerControlCommands = Literal["play", "stop", "next", "prev", "pause"]
+                                            PlaybackOption,
+                                            MediaPlayerInterface)
 
 
 class ConfigSchemaIn(BaseModel, use_enum_values=True):
@@ -21,6 +20,8 @@ class ConfigSchemaIn(BaseModel, use_enum_values=True):
     imageDuration: Optional[float] = 10.0
     screenNumber: int = Field(ge=0)
     playlist: str
+    hotkeys: Optional[bool] = False
+    interface: Optional[MediaPlayerInterface] = MediaPlayerInterface.QT
 
     @field_validator("playback")
     @classmethod
@@ -72,3 +73,5 @@ class ConfigSchemaUpdate(ConfigSchemaIn):
     imageDuration: Optional[float] = None
     screenNumber: Optional[int] = Field(default=None, ge=0)
     playlist: Optional[str] = None
+    hotkeys: Optional[bool] = None
+    interface: Optional[MediaPlayerInterface] = None

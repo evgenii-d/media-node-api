@@ -47,4 +47,5 @@ case "${command,,}" in
 *)
     echo "Unknown command '$command'"
     ;;
+
 esac

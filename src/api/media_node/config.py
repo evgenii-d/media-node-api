@@ -1,7 +1,6 @@
 import uuid
 
 from src.constants import AppDir
-from src.core.syscmd import SysCmdExec
 from src.core.configmgr import ConfigManager
 from src.api.media_node.schemas import ConfigSchema
 
@@ -16,13 +15,3 @@ default_config = {
     ).model_dump()
 }
 config_manager = ConfigManager(config_path, default_config)
-node_config = ConfigSchema.model_validate(config_manager.load_section())
-
-if node_config.audioDevice:
-    args = ["pacmd", "set-default-sink", node_config.audioDevice]
-    SysCmdExec.run(args)
-
-if node_config.volume:
-    args = ["pactl", "set-sink-volume",
-            "@DEFAULT_SINK@", f"{node_config.volume}%"]
-    SysCmdExec.run(args)

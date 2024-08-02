@@ -28,7 +28,20 @@ class AudioOutputModule(Enum):
     NONE = "none"
 
 
+class PlayerControlCommands(Enum):
+    PLAY = "play"
+    STOP = "stop"
+    NEXT = "next"
+    PREVIOUS = "prev"
+    PAUSE = "pause"
+
+
 class PlaybackOption(Enum):
     LOOP = "-L"
     REPEAT = "-R"
     RANDOM = "-Z"
+
+
+class MediaPlayerInterface(Enum):
+    QT = "qt"
+    DUMMY = "dummy"
