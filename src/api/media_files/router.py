@@ -13,16 +13,19 @@ router = APIRouter(prefix="/media-files", tags=["media files"])
 
 
 @router.get("/", responses={
-    200: {"description": "Available media files retrieved successfully"},
+    200: {"description": "Media files retrieved successfully"},
+    404: {"description": "Media files not found"},
     500: {"description": "Failed to retrieve media files"}
 }, status_code=200)
 def available_files() -> AvailableFilesSchema:
     files = get_dir_files(AppDir.MEDIA.value)
-    return AvailableFilesSchema(
-        totalFiles=len(files),
-        totalSizeBytes=get_dir_size(AppDir.MEDIA.value),
-        list=files
-    )
+    if files:
+        return AvailableFilesSchema(
+            totalFiles=len(files),
+            totalSizeBytes=get_dir_size(AppDir.MEDIA.value),
+            list=files
+        )
+    raise HTTPException(404, "Media files not found")
 
 
 @router.post("/", responses={

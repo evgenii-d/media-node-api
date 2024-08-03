@@ -4,7 +4,9 @@
 
 Download project
 
-`git clone https://github.com/evgenii-d/media-node-api.git`
+```bash
+git clone https://github.com/evgenii-d/media-node-api.git
+```
 
 Create virtual environment
 
@@ -22,19 +24,21 @@ pip install -r requirements.txt
 
 Make scripts executable
 
-`chmod +x ./scripts/*.sh`
+```bash
+chmod +x ./scripts/*.sh
+```
 
-Create systemd user services
+Execute `setup.sh`
 
-`./scripts/create_services.sh`
+```bash
+./scripts/setup.sh
+```
 
 (Only first time) Start API manually
 
-`python -m src.main`
-
-Enable systemd user service
-
-`systemctl --user enable media-node-api.service`
+```bash
+./venv/bin/python -m src.main
+```
 
 ## System configuration
 
@@ -123,6 +127,10 @@ Enable power button. `GPIO3` by default e.g., physical pins 5 and 6
 ```txt
 dtoverlay=gpio-shutdown
 ```
+
+## Notes
+
+Static files address: <http://IP_ADDRESS:5000/static/public/>
 
 ## Links
 

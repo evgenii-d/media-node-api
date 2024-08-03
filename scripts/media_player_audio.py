@@ -42,12 +42,18 @@ class VLCRemoteControl:
         return True
 
 
-volume = os.getenv("volume")
-audio_device = os.getenv("audioDevice")
-vlc_rc = VLCRemoteControl("127.0.0.1", 50000)
+def main():
+    volume = os.getenv("volume")
+    audio_device = os.getenv("audioDevice")
+    rc_port = os.getenv("rcPort", "50000")
+    vlc_rc = VLCRemoteControl("127.0.0.1", int(rc_port))
 
-if volume:
-    vlc_rc.send(f"volume {volume}")
+    if volume:
+        vlc_rc.send(f"volume {volume}")
 
-if audio_device:
-    vlc_rc.send(f"adev {audio_device}")
+    if audio_device:
+        vlc_rc.send(f"adev {audio_device}")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,4 +1,5 @@
 #!/bin/bash
+# !!! Environment Variables: uuid, position, url
 profile_dir="$HOME/.config/browser-profiles/$uuid"
 
 rm -rf "$profile_dir"

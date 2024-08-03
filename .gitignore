@@ -162,8 +162,6 @@ cython_debug/
 # Other
 .vscode
 resources/*
-resources/configs/
-resources/media/
-resources/playlists/
 resources/static/*
-resources/static/public
+!resources/static/
+!resources/static/openapi/

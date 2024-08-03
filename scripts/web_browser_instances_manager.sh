@@ -45,7 +45,7 @@ case "${command,,}" in
         rm -rf "${profiles_dir:?}/$profile"
     done
 
-    # Start instances with enabled `autostart`
+    # Start instances with enabled 'autostart'
     for file in "$configs_dir"/*; do
         autostart=$(grep "autostart" "$file" |
             cut -d "=" -f2 | tr -d "\r" | xargs)
@@ -79,4 +79,5 @@ case "${command,,}" in
 *)
     echo "Unknown command '$command'"
     ;;
+
 esac
