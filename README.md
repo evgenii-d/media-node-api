@@ -4,7 +4,9 @@
 
 Download project
 
-`git clone https://github.com/evgenii-d/media-node-api.git`
+```bash
+git clone https://github.com/evgenii-d/media-node-api.git
+```
 
 Create virtual environment
 
@@ -22,19 +24,21 @@ pip install -r requirements.txt
 
 Make scripts executable
 
-`chmod +x ./scripts/*.sh`
+```bash
+chmod +x ./scripts/*.sh
+```
 
-Create systemd user services
+Execute `setup.sh`
 
-`./scripts/create_services.sh`
+```bash
+./scripts/create_services.sh
+```
 
 (Only first time) Start API manually
 
-`python -m src.main`
-
-Enable systemd user service
-
-`systemctl --user enable media-node-api.service`
+```bash
+python -m src.main
+```
 
 ## System configuration
 
