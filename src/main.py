@@ -6,11 +6,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.config import app_config
 from src.constants import AppDir
-from src.api.api_docs.router import router as api_docs
+from src.api.openapi.router import router as openapi
 from src.api.media_files.router import router as media_files
-from src.api.media_node.router import router as media_node
 from src.api.media_player.router import router as media_player
 from src.api.playlists.router import router as playlists
+from src.api.sys_control.router import router as sys_control
 from src.api.web_browser.router import router as web_browser
 
 app = FastAPI(docs_url=None, redoc_url=None)
@@ -25,16 +25,15 @@ app.mount("/static",
           StaticFiles(directory=AppDir.STATIC.value, html=True),
           name="static_files")
 
-# Enable openapi
 if app_config.openapi:
-    app.include_router(api_docs)
+    app.include_router(openapi)
 else:
     app.openapi_url = None
 
 app.include_router(media_files)
-app.include_router(media_node)
 app.include_router(media_player)
 app.include_router(playlists)
+app.include_router(sys_control)
 app.include_router(web_browser)
 
 if __name__ == "__main__":

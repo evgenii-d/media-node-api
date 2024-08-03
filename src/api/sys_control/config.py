@@ -2,9 +2,9 @@ import uuid
 
 from src.constants import AppDir
 from src.core.configmgr import ConfigManager
-from src.api.media_node.schemas import ConfigSchema
+from src.api.sys_control.schemas import ConfigSchema
 
-config_path = AppDir.CONFIGS.value/"media_node.ini"
+config_path = AppDir.CONFIGS.value/"sys_control.ini"
 xrandr_config = AppDir.CONFIGS.value/"xrandr.txt"
 default_config = {
     "DEFAULT": ConfigSchema(

@@ -32,7 +32,7 @@ Wants=network-online.target
 Type=exec
 Restart=always
 Environment="DISPLAY=:0"
-EnvironmentFile=$configs_dir/media_node.ini
+EnvironmentFile=$configs_dir/sys_control.ini
 ExecStart=$scripts_dir/run_app.sh
 
 [Install]

@@ -1,7 +1,7 @@
 #!/bin/bash
 app_dir="$(dirname "$(dirname "$(realpath "$0")")")"
 configs_dir="$app_dir/resources/configs"
-media_node_config="$configs_dir/media_node.ini"
+media_node_config="$configs_dir/sys_control.ini"
 
 # Grab the default audio device and volume from the config
 audioDevice=$(grep "audioDevice" "$media_node_config" |
