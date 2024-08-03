@@ -1,4 +1,5 @@
 #!/bin/bash
+# !!! Environment Variables: hotkeys, interface
 main_options=(
     "$playlist"
     -f
