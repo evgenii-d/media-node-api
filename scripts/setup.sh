@@ -103,16 +103,16 @@ echo "Enable Media Node API service"
 systemctl --user enable media-node-api.service
 
 echo
-echo "Create openbox autostart file: "
-echo "+ Execute xrandr at startup to configure displays"
-echo "+ Set system audio device and volume at startup"
-echo "+ VLC Media Player Instances Autostart"
-echo "+ Chromium Browser Instances Autostart"
+echo "Create an Openbox autostart file and add scripts for:"
+echo "+ Executing xrandr at startup to configure displays"
+echo "+ Setting the system audio device and volume at startup"
+echo "+ Autostarting VLC Media Player instances"
+echo "+ Autostarting Chromium browser instances"
 
 mkdir -p "$HOME/.config/openbox"
 cat <<EOF >"$openbox_autostart"
 #!/bin/bash
-$scripts_dir/atostart.sh
+$scripts_dir/autostart.sh
 EOF
 chmod +x "$openbox_autostart"
 
