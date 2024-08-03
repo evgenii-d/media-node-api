@@ -16,7 +16,7 @@ echo "Enable user lingering"
 loginctl enable-linger "$(logname)"
 
 echo
-echo "Create directory for user services"
+echo "Create a directory for user services"
 mkdir -p "$user_services_dir"
 
 echo
@@ -99,7 +99,7 @@ ExecStart=python3 $scripts_dir/display_detector.py
 EOF
 
 echo
-echo "Enable Media Node API service"
+echo "Enable the Media Node API service"
 systemctl --user enable media-node-api.service
 
 echo

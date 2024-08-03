@@ -11,8 +11,9 @@ router = APIRouter(prefix="/wifi")
 
 
 @router.get("/interfaces", responses={
-    200: {"description": "List of Wi-Fi interfaces retrieved successfully"},
-    502: {"description": "Failed to retrieve list of Wi-Fi interfaces"}
+    200: {"description": "Wi-Fi interfaces retrieved successfully"},
+    404: {"description": "Wi-Fi interfaces not found"},
+    502: {"description": "Failed to retrieve Wi-Fi interfaces"}
 }, status_code=200)
 def wifi_interfaces() -> list[WifiInterfaceSchema]:
     command = SysCmdExec.run(["sudo", "nmcli", "-t", "device", "status"])
@@ -20,11 +21,14 @@ def wifi_interfaces() -> list[WifiInterfaceSchema]:
         raise HTTPException(502, "Command execution failed")
 
     result = re.findall(r"(\S.+)(?:\:wifi\:)(.+?):", command.output)
-    return [WifiInterfaceSchema(name=i[0], status=i[1]) for i in result]
+    if result:
+        return [WifiInterfaceSchema(name=i[0], status=i[1]) for i in result]
+    raise HTTPException(404, "Wi-Fi interfaces not found")
 
 
 @router.get("/connections", responses={
     200: {"description": "Wi-Fi connections retrieved successfully"},
+    404: {"description": "Wi-Fi connections not found"},
     502: {"description": "Failed to retrieve Wi-Fi connections"}
 }, status_code=200)
 def saved_wifi_connections() -> list[SavedWifiConnectionSchema]:
@@ -38,7 +42,9 @@ def saved_wifi_connections() -> list[SavedWifiConnectionSchema]:
             data = [i.strip() for i in line.split(":")]
             item = SavedWifiConnectionSchema(ssid=data[0], interface=data[3])
             result.append(item)
-    return result
+    if result:
+        return result
+    raise HTTPException(404, "Wi-Fi connections not found")
 
 
 @router.delete("/connections/{ssid}", responses={
@@ -96,6 +102,7 @@ def disconnect_wifi_network(ssid: str = Body()) -> None:
 
 @router.get("/{interface}/networks", responses={
     200: {"description": "Available Wi-Fi networks retrieved successfully"},
+    404: {"description": "Wi-Fi networks not found"},
     502: {"description": "Failed to retrieve Wi-Fi networks"}
 }, status_code=200)
 def available_wifi_networks(interface: str) -> list[WifiNetworkSchema]:
@@ -124,4 +131,6 @@ def available_wifi_networks(interface: str) -> list[WifiNetworkSchema]:
             network["signal"] = int(network["signal"])
             network["security"] = network["security"].split(" ")
             result.append(WifiNetworkSchema(**network))
-    return result
+    if result:
+        return result
+    raise HTTPException(404, "Wi-Fi networks not found")

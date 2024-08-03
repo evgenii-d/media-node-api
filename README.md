@@ -31,13 +31,13 @@ chmod +x ./scripts/*.sh
 Execute `setup.sh`
 
 ```bash
-./scripts/create_services.sh
+./scripts/setup.sh
 ```
 
 (Only first time) Start API manually
 
 ```bash
-python -m src.main
+./venv/bin/python -m src.main
 ```
 
 ## System configuration
@@ -127,6 +127,10 @@ Enable power button. `GPIO3` by default e.g., physical pins 5 and 6
 ```txt
 dtoverlay=gpio-shutdown
 ```
+
+## Notes
+
+Static files address: <http://IP_ADDRESS:5000/static/public/>
 
 ## Links
 

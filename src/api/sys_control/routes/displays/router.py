@@ -23,6 +23,7 @@ def xrandr_to_dict(xrandr_args: list[str]) -> dict[str, str]:
 
 @router.get("/", responses={
     200: {"description": "List of connected displays retrieved successfully"},
+    404: {"description": "Connected displays not found"},
     502: {"description": "Failed to retrieve list of connected displays"}
 }, status_code=200)
 def connected_displays() -> list[ConnectedDisplay]:
@@ -53,7 +54,9 @@ def connected_displays() -> list[ConnectedDisplay]:
             reflect=reflect,
             resolutions=[s.split()[0] for s in i[5].splitlines()]
         ))
-    return result
+    if result:
+        return result
+    raise HTTPException(404, "Connected displays not found")
 
 
 @router.post("/detect/{command}", responses={
@@ -61,6 +64,7 @@ def connected_displays() -> list[ConnectedDisplay]:
     502: {"description": "Failed to execute display detection command"}
 }, status_code=204)
 def displays_detection(command: Literal["start", "stop", "restart"]) -> None:
+
     args = ["systemctl", "--user", command, "display-detector.service"]
     if not SysCmdExec.run(args).success:
         raise HTTPException(502, f"Failed to {command} the display detection")
@@ -155,13 +159,10 @@ def delete_display_config(display_name: str) -> None:
     if not xrandr_config.exists():
         raise HTTPException(404, "Displays configuration not created")
 
-    xrandr_data = xrandr_config.read_text("utf-8")
-    if display_name not in xrandr_data:
-        raise HTTPException(404, "Display configuration not found")
-
-    xrandr_data = xrandr_data.splitlines()
+    xrandr_data = xrandr_config.read_text("utf-8").splitlines()
     for line in xrandr_data:
-        if display_name in line:
+        if display_name in line.split():
             xrandr_data.remove(line)
             xrandr_config.write_text("\n".join(xrandr_data), "utf-8")
-            break
+            return
+    raise HTTPException(404, "Display configuration not found")

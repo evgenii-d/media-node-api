@@ -18,12 +18,15 @@ def get_playlist_path(playlist_name: str) -> Path:
 
 
 @router.get("/", responses={
-    200: {"description": "Playlists retrieved successfully"}
+    200: {"description": "Playlists retrieved successfully"},
+    404: {"description": "Playlists not found"}
 }, status_code=200)
 def available_playlists() -> list[str]:
     files = get_dir_files(AppDir.PLAYLISTS.value, suffix=False)
     files.sort()
-    return files
+    if files:
+        return files
+    raise HTTPException(404, "Playlists not found")
 
 
 @router.post("/", responses={

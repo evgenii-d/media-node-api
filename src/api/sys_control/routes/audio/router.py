@@ -10,6 +10,7 @@ router = APIRouter(prefix="/audio")
 
 @router.get("/devices", responses={
     200: {"description": "Audio devices retrieved successfully"},
+    404: {"description": "Audio devices not found"},
     502: {"description": "Failed to retrieve audio devices"}
 }, status_code=200)
 def audio_devices() -> list[AudioDeviceSchema]:
@@ -24,7 +25,9 @@ def audio_devices() -> list[AudioDeviceSchema]:
             result.append(AudioDeviceSchema(id=int(d[0]), name=d[1]))
     except IndexError as e:
         raise HTTPException(502, "Failed to retrieve audio devices") from e
-    return result
+    if result:
+        return result
+    raise HTTPException(404, "Audio devices not found")
 
 
 @router.get("/devices/default", responses={

@@ -30,11 +30,11 @@ if app_config.openapi:
 else:
     app.openapi_url = None
 
-app.include_router(media_files)
-app.include_router(media_player)
-app.include_router(playlists)
 app.include_router(sys_control)
 app.include_router(web_browser)
+app.include_router(media_player)
+app.include_router(media_files)
+app.include_router(playlists)
 
 if __name__ == "__main__":
     uvicorn.run(app="src.main:app",
