@@ -1,4 +1,3 @@
-from math import ceil
 from uuid import uuid4
 from pathlib import Path
 from fastapi import APIRouter, Body, HTTPException
@@ -218,7 +217,7 @@ def volume_level(instance_uuid: str) -> int:
     value = vlcrc.get_volume()
     if value == -1:
         raise HTTPException(502, "Media player unavailable")
-    return ceil((value / 320) * 125)
+    return value
 
 
 @router.post("/{instance_uuid}/audio/volume", responses={
@@ -226,12 +225,11 @@ def volume_level(instance_uuid: str) -> int:
     404: {"description": "Player instance not found"},
     502: {"description": "Media player unavailable"},
 }, status_code=204)
-def set_volume(instance_uuid: str, percent: int = Body(ge=0, le=125)) -> None:
+def set_volume(instance_uuid: str, value: int = Body(ge=0, le=320)) -> None:
     config_path = get_config_path(instance_uuid)
     config = ConfigFileSchema(**ConfigManager(config_path).load_section())
     vlcrc = VLCRemoteControl("127.0.0.1", config.rcPort)
 
-    value = int((percent / 125) * 320)
     if not vlcrc.set_volume(value):
         raise HTTPException(502, "Media player unavailable")
     data = ConfigSchemaUpdate(volume=value).model_dump(exclude_none=True)

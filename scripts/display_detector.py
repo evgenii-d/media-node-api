@@ -74,7 +74,7 @@ def create_window(geometry: WindowGeometry,
     window.geometry(str(geometry))
     font = ("Arial", int(geometry.width/geometry.height * 20))
     label = Label(window, text=message, font=font)
-    label.place(relx=0.5, rely=0.5, anchor="center")
+    label.place(relx=0.5, rely=0.25, anchor="center")
 
 
 def main():
@@ -95,7 +95,7 @@ def main():
     for display in displays:
         w, h = map(int, display.resolution.split("x"))
         x, y = map(int, display.position.split("+"))
-        geometry = WindowGeometry(w//2, h//2, x+w//4, y+h//4)
+        geometry = WindowGeometry(w//2, h//2, x+w//4, y)
         info = f'{display.resolution}\n{display.position}'
 
         if display.is_primary:
@@ -103,7 +103,7 @@ def main():
             root.geometry(str(geometry))
             font = ("Arial", int(w/h * 20))
             label = Label(root, font=font, text=f'[{display.name}]\n{info}')
-            label.place(relx=0.5, rely=0.5, anchor="center")
+            label.place(relx=0.5, rely=0.25, anchor="center")
         else:
             create_window(geometry, display.name, f'{display.name}\n{info}')
     root.mainloop()

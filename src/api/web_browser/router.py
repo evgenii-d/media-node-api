@@ -1,9 +1,11 @@
+import shutil
+import zipfile
 from uuid import uuid4
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile
 
 from src.constants import AppDir, SystemctlCommand
 from src.core.syscmd import SysCmdExec
-from src.core.filesys import get_dir_files
+from src.core.filesys import get_dir_files, aio_save_files_to_dir
 from src.core.configmgr import ConfigManager
 from src.api.web_browser.schemas import (ConfigSchemaIn, ConfigSchemaOut,
                                          ConfigSchemaUpdate)
@@ -11,6 +13,29 @@ from src.api.web_browser.schemas import (ConfigSchemaIn, ConfigSchemaOut,
 router = APIRouter(prefix="/web-browser", tags=["web browser"])
 browser_configs = AppDir.CONFIGS.value/"web_browser"
 browser_configs.mkdir(exist_ok=True)
+
+
+@router.post("/static", responses={
+    204: {"description": "File successfully uploaded"},
+    400: {"description": "Invalid file type. Accept only .zip files"}
+}, status_code=204)
+async def upload_static_files(file: UploadFile) -> None:
+    file.filename = "archive.zip"
+    archive = AppDir.STATIC.value/file.filename
+    await aio_save_files_to_dir([file], AppDir.STATIC.value)
+
+    if not zipfile.is_zipfile(archive):
+        archive.unlink()
+        raise HTTPException(400, (f"Invalid file type: {file.content_type}. "
+                                  "Only .zip files allowed."))
+
+    # remove all files and folders from the "public" directory
+    for item in (AppDir.STATIC_PUBLIC.value).glob("*"):
+        if item.is_dir():
+            shutil.rmtree(item)
+        else:
+            item.unlink(True)
+    shutil.unpack_archive(archive, AppDir.STATIC_PUBLIC.value)
 
 
 @router.get("/instances", responses={

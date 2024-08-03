@@ -104,18 +104,15 @@ systemctl --user enable media-node-api.service
 
 echo
 echo "Create openbox autostart file: "
-echo "+ xrandr execution to configure displays"
-echo "+ Set system audio device and volume"
+echo "+ Execute xrandr at startup to configure displays"
+echo "+ Set system audio device and volume at startup"
 echo "+ VLC Media Player Instances Autostart"
 echo "+ Chromium Browser Instances Autostart"
 
 mkdir -p "$HOME/.config/openbox"
 cat <<EOF >"$openbox_autostart"
 #!/bin/bash
-sleep 10 && bash $configs_dir/xrandr.txt &
-$scripts_dir/system_audio.sh
-systemctl --user start media-player-instances-manager@autostart.service
-systemctl --user start web-browser-instances-manager@autostart.service
+$scripts_dir/atostart.sh
 EOF
 chmod +x "$openbox_autostart"
 
