@@ -1,3 +1,4 @@
+import re
 import shutil
 import zipfile
 from uuid import uuid4
@@ -61,6 +62,24 @@ def create_browser_instance(data: ConfigSchemaIn) -> ConfigSchemaOut:
     data = ConfigSchemaOut(**data.model_dump(), uuid=config_path.stem)
     ConfigManager(config_path).save_section(data.model_dump())
     return data
+
+
+@router.get("/instances/active", responses={
+    200: {"description": "Active instances retrieved successfully"},
+    404: {"description": "No active instances found"},
+    502: {"description": "Failed to retrieve active instances"}
+}, status_code=200)
+def active_instances() -> list[str]:
+    args = ["systemctl", "--user", "list-units",
+            "--type", "service", "--state", "active,running"]
+    command = SysCmdExec.run(args)
+    if not command.success:
+        raise HTTPException(502, "Failed to retrieve active instances")
+
+    result = re.findall(r"web-browser@(.*).service", command.output)
+    if result:
+        return result
+    raise HTTPException(404, "No active instances found")
 
 
 @router.patch("/instances/{instance_uuid}", responses={

@@ -24,12 +24,12 @@ def xrandr_to_dict(xrandr_args: list[str]) -> dict[str, str]:
 @router.get("/", responses={
     200: {"description": "List of connected displays retrieved successfully"},
     404: {"description": "Connected displays not found"},
-    502: {"description": "Failed to retrieve list of connected displays"}
+    502: {"description": "Failed to retrieve connected displays"}
 }, status_code=200)
 def connected_displays() -> list[ConnectedDisplay]:
     command = SysCmdExec.run(["xrandr"])
     if not command.success:
-        raise HTTPException(502, "Command execution failed")
+        raise HTTPException(502, "Failed to retrieve connected displays")
 
     regex = (r"(.+)\s(?:connected)(.*)\s(\d+x\d+)\+(\d+\+\d+)\s(.*?)\(.+\n"
              r"((\s+\d+x\d+\w*\s+.*\n)+)")

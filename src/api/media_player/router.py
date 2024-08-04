@@ -1,3 +1,4 @@
+import re
 from uuid import uuid4
 from pathlib import Path
 from fastapi import APIRouter, Body, HTTPException
@@ -25,7 +26,8 @@ def get_config_path(instance_uuid: str) -> Path:
 
 @router.get("/instances", responses={
     200: {"description": "Player instances retrieved successfully"},
-    404: {"description": "No player instances found"}
+    404: {"description": "No player instances found"},
+    502: {"description": "Failed to execute command"}
 }, status_code=200)
 def player_instances() -> list[ConfigSchemaOut]:
     files = get_dir_files(player_configs)
@@ -68,6 +70,24 @@ def create_player_instance(data: ConfigSchemaIn) -> ConfigSchemaOut:
     )
     ConfigManager(new_config_path).save_section(new_config.model_dump())
     return ConfigSchemaOut(**new_config.model_dump())
+
+
+@router.get("/instances/active", responses={
+    200: {"description": "Active instances retrieved successfully"},
+    404: {"description": "No active instances found"},
+    502: {"description": "Failed to retrieve active instances"}
+}, status_code=200)
+def active_instances() -> list[str]:
+    args = ["systemctl", "--user", "list-units",
+            "--type", "service", "--state", "active,running"]
+    command = SysCmdExec.run(args)
+    if not command.success:
+        raise HTTPException(502, "Failed to retrieve active instances")
+
+    result = re.findall(r"media-player@(.*).service", command.output)
+    if result:
+        return result
+    raise HTTPException(404, "No active instances found")
 
 
 @router.patch("/instances/{instance_uuid}", responses={
