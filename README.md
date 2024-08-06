@@ -8,30 +8,16 @@ Download project
 git clone https://github.com/evgenii-d/media-node-api.git
 ```
 
-Create virtual environment
-
-```bash
-cd media-node-api
-python -m venv venv
-```
-
-Install python dependencies
-
-```bash
-. venv/bin/actvate
-pip install -r requirements.txt
-```
-
 Make scripts executable
 
 ```bash
 chmod +x ./scripts/*.sh
 ```
 
-Execute `setup.sh`
+Execute `setup_project.sh`
 
 ```bash
-./scripts/setup.sh
+./scripts/setup_project.sh
 ```
 
 (Only first time) Start API manually
@@ -56,7 +42,10 @@ Modify `/etc/sudoers` with `visudo`
 `sudo visudo`
 
 ```txt
-<USER_NAME> ALL=NOPASSWD: <COMMAND_PATH>
+<USER_NAME> ALL=NOPASSWD: /PATH/TO/shutdown
+<USER_NAME> ALL=NOPASSWD: /PATH/TO/hostnamectl
+<USER_NAME> ALL=NOPASSWD: /PATH/TO/nmcli
+<USER_NAME> ALL=NOPASSWD: /PATH/TO/change_hostname.sh
 ```
 
 ## Software installation
@@ -122,7 +111,7 @@ wifi.scan-rand-mac-address=no
 
 Enable power button. `GPIO3` by default e.g., physical pins 5 and 6
 
-`/boot/config.txt`
+`/boot/firmware/config.txt`
 
 ```txt
 dtoverlay=gpio-shutdown

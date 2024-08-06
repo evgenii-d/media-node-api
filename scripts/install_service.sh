@@ -11,17 +11,17 @@ if [ "$EUID" -eq 0 ]; then
     exit 1
 fi
 
+echo "[Install Service]"
+
 echo
-echo "Enable user lingering"
+echo "> Enabling user lingering"
 loginctl enable-linger "$(logname)"
 
-echo
-echo "Create a directory for user services"
+echo "> Creating directory for user services"
 mkdir -p "$user_services_dir"
 
-echo
-echo "Create systemd user services:"
-echo "+ Media Node API"
+echo "> Creating systemd user services"
+echo " + Media Node API"
 cat <<EOF >"$user_services_dir/media-node-api.service"
 [Unit]
 Description=Media Node API
@@ -29,7 +29,6 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
-Type=exec
 Restart=always
 Environment="DISPLAY=:0"
 EnvironmentFile=$configs_dir/sys_control.ini
@@ -39,7 +38,7 @@ ExecStart=$scripts_dir/run_app.sh
 WantedBy=default.target
 EOF
 
-echo "+ VLC Media Player Instance"
+echo " + VLC Media Player Instance"
 cat <<EOF >"$user_services_dir/media-player@.service"
 [Unit]
 Description=VLC Media Player + RC Interface. Instance %i
@@ -50,10 +49,10 @@ Restart=on-failure
 EnvironmentFile=$configs_dir/media_player/%i.ini
 ExecStart=$scripts_dir/run_media_player.sh
 ExecStartPost=sleep 5
-ExecStartPost=python3 $scripts_dir/media_player_audio.py
+ExecStartPost=python3 $scripts_dir/init_media_player_audio.py
 EOF
 
-echo "+ VLC Media Player Instances Manager"
+echo " + VLC Media Player Instances Manager"
 cat <<EOF >"$user_services_dir/media-player-instances-manager@.service"
 [Unit]
 Description=VLC Media Player Instances Manager. Command %i
@@ -64,7 +63,7 @@ Type=oneshot
 ExecStart=$scripts_dir/media_player_instances_manager.sh %i
 EOF
 
-echo "+ Chromium Browser Instance"
+echo " + Chromium Browser Instance"
 cat <<EOF >"$user_services_dir/web-browser@.service"
 [Unit]
 Description=Chromium Browser. Instance %i
@@ -76,7 +75,7 @@ EnvironmentFile=$configs_dir/web_browser/%i.ini
 ExecStart=$scripts_dir/run_web_browser.sh
 EOF
 
-echo "+ Chromium Browser Instances Manager"
+echo " + Chromium Browser Instances Manager"
 cat <<EOF >"$user_services_dir/web-browser-instances-manager@.service"
 [Unit]
 Description=Chromium Browser Instances Manager. Command %i
@@ -87,7 +86,7 @@ Type=oneshot
 ExecStart=$scripts_dir/web_browser_instances_manager.sh %i
 EOF
 
-echo "+ Display Detector"
+echo " + Display Detector"
 cat <<EOF >"$user_services_dir/display-detector.service"
 [Unit]
 Description=Display Detector
@@ -98,21 +97,19 @@ Restart=on-failure
 ExecStart=python3 $scripts_dir/display_detector.py
 EOF
 
-echo
-echo "Enable the Media Node API service"
+echo "> Enabling the Media Node API service"
 systemctl --user enable media-node-api.service
 
-echo
-echo "Create an Openbox autostart file and add scripts for:"
-echo "+ Executing xrandr at startup to configure displays"
-echo "+ Setting the system audio device and volume at startup"
-echo "+ Autostarting VLC Media Player instances"
-echo "+ Autostarting Chromium browser instances"
+echo "> Creating an Openbox autostart file and adding commands"
+echo " + Executing xrandr at startup to configure displays"
+echo " + Setting the system audio device and volume at startup"
+echo " + Autostarting VLC Media Player instances"
+echo " + Autostarting Chromium browser instances"
 
 mkdir -p "$HOME/.config/openbox"
 cat <<EOF >"$openbox_autostart"
 #!/bin/bash
-$scripts_dir/autostart.sh
+"$scripts_dir/autostart.sh"
 EOF
 chmod +x "$openbox_autostart"
 
