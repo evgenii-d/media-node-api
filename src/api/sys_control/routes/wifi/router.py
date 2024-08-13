@@ -57,41 +57,44 @@ def delete_saved_wifi_connection(ssid: str) -> None:
         raise HTTPException(502, f"Failed to delete {ssid}")
 
 
-@router.post("/connect", responses={
+@router.post("/connect/{ssid}", responses={
     204: {"description": "Successfully connected to the Wi-Fi network"},
     502: {"description": "An error occurred while attempting to "
           "connect to the Wi-Fi network"}
 }, status_code=204)
-def connect_wifi_network(data: ConnectWifiNetworkSchema) -> None:
-    connect_args = ["sudo", "nmcli", "device", "wifi", "connect", data.ssid]
+def connect_wifi_network(ssid: str,
+                         data: ConnectWifiNetworkSchema | None = None
+                         ) -> None:
+    connect_args = ["sudo", "nmcli", "device", "wifi", "connect", ssid]
 
-    if data.password:
-        connect_args.extend(["password", data.password])
+    if data:
+        if data.password:
+            connect_args.extend(["password", data.password])
 
-    if data.interface:
-        connect_args.extend(["ifname", data.interface])
+        if data.interface:
+            connect_args.extend(["ifname", data.interface])
 
     connect = SysCmdExec.run(connect_args)
     if not connect.success:
-        raise HTTPException(502, f"Failed to connect to '{data.ssid}'")
+        raise HTTPException(502, f"Failed to connect to '{ssid}'")
 
     enable_autoconnect = SysCmdExec.run(["sudo", "nmcli", "connection",
-                                         "modify", data.ssid,
+                                         "modify", ssid,
                                          "connection.autoconnect", "yes"])
     if not enable_autoconnect.success:
-        message = f"Failed to enable autoconnect for '{data.ssid}'"
+        message = f"Failed to enable autoconnect for '{ssid}'"
         raise HTTPException(502, message)
 
 
-@router.post("/disconnect", responses={
+@router.post("/disconnect/{ssid}", responses={
     204: {"description": "Successfully disconnected from the Wi-Fi network"},
     502: {"description": "An error occurred while attempting to "
           "disconnect from the Wi-Fi network"}
 }, status_code=204)
-def disconnect_wifi_network(ssid: str = Body()) -> None:
+def disconnect_wifi_network(ssid: str) -> None:
     disconnect = SysCmdExec.run(["sudo", "nmcli", "connection", "down", ssid])
     if not disconnect.success:
-        raise HTTPException(502, "Failed to disconnect interface")
+        raise HTTPException(502, f"Failed to disconnect '{ssid}'")
 
     disable_autoconnect = SysCmdExec.run(["sudo", "nmcli", "connection",
                                           "modify", ssid,

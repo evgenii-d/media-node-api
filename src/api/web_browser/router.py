@@ -8,8 +8,12 @@ from src.constants import AppDir, SystemctlCommand
 from src.core.syscmd import SysCmdExec
 from src.core.filesys import get_dir_files, aio_save_files_to_dir
 from src.core.configmgr import ConfigManager
-from src.api.web_browser.schemas import (ConfigSchemaIn, ConfigSchemaOut,
-                                         ConfigSchemaUpdate)
+from src.api.web_browser.schemas import (WindowPosition,
+                                         ConfigSchemaIn,
+                                         ConfigSchemaOut,
+                                         ConfigFileSchema,
+                                         ConfigFileSchemaIn,
+                                         ConfigFileSchemaUpdate)
 
 router = APIRouter(prefix="/web-browser", tags=["web browser"])
 browser_configs = AppDir.CONFIGS.value/"web_browser"
@@ -50,7 +54,15 @@ def browser_instances() -> list[ConfigSchemaOut]:
     instances = []
     for file in files:
         config = ConfigManager(browser_configs/file).load_section()
-        instances.append(ConfigSchemaOut(**config))
+        config = ConfigFileSchema(**config)
+        x, y = config.position.split(",")
+        instances.append(ConfigSchemaOut(
+            name=config.name,
+            autostart=config.autostart,
+            url=config.url,
+            position=WindowPosition(x=x, y=y),
+            uuid=config.uuid
+        ))
     return instances
 
 
@@ -59,9 +71,16 @@ def browser_instances() -> list[ConfigSchemaOut]:
 }, status_code=201)
 def create_browser_instance(data: ConfigSchemaIn) -> ConfigSchemaOut:
     config_path = browser_configs/f"{uuid4().hex}.ini"
-    data = ConfigSchemaOut(**data.model_dump(), uuid=config_path.stem)
-    ConfigManager(config_path).save_section(data.model_dump())
-    return data
+    data_out = ConfigSchemaOut(**data.model_dump(), uuid=config_path.stem)
+    file_data = ConfigFileSchema(
+        name=data_out.name,
+        autostart=data_out.autostart,
+        url=data_out.url,
+        position=f"{data_out.position.x},{data_out.position.y}",
+        uuid=data_out.uuid
+    )
+    ConfigManager(config_path).save_section(file_data.model_dump())
+    return data_out
 
 
 @router.get("/instances/active", responses={
@@ -87,13 +106,20 @@ def active_instances() -> list[str]:
     404: {"description": "Browser instance not found"}
 }, status_code=204)
 def update_browser_instance(instance_uuid: str,
-                            data: ConfigSchemaUpdate) -> None:
+                            data: ConfigFileSchemaIn) -> None:
     file = browser_configs/f"{instance_uuid}.ini"
     if not file.exists():
         raise HTTPException(404, "Browser instance not found")
-    if data.url == "":
-        data.url = "about:blank"
-    ConfigManager(file).save_section(data.model_dump(exclude_none=True))
+    position = None
+    if data.position:
+        position = f"{data.position.x},{data.position.y}"
+    file_data = ConfigFileSchemaUpdate(
+        name=data.name,
+        autostart=data.autostart,
+        url="about:blank" if data.url == "" else data.url,
+        position=position,
+    ).model_dump(exclude_none=True)
+    ConfigManager(file).save_section(file_data)
 
 
 @router.delete("/instances/{instance_uuid}", responses={
@@ -120,7 +146,8 @@ def command_all_instancies(command: SystemctlCommand) -> None:
         case _:
             args.extend([command.value, "web-browser@*.service"])
     if not SysCmdExec.run(args).success:
-        raise HTTPException(502, f"Failed to execute '{command}' command")
+        message = f"Failed to execute '{command.value}' command"
+        raise HTTPException(502, message)
 
 
 @router.post("/{instance_uuid}/service/{command}", responses={
@@ -136,4 +163,5 @@ def command_browser_instance(instance_uuid: str,
     args = ["systemctl", "--user", command.value,
             f"web-browser@{instance_uuid}.service"]
     if not SysCmdExec.run(args).success:
-        raise HTTPException(502, f"Failed to execute '{command}' command")
+        message = f"Failed to execute '{command.value}' command"
+        raise HTTPException(502, message)

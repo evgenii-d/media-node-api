@@ -46,7 +46,6 @@ class WifiNetworkSchema(BaseModel):
 
 
 class ConnectWifiNetworkSchema(BaseModel):
-    ssid: str
     password: Optional[str] = None
     interface: Optional[str] = None
 

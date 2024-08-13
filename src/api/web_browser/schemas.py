@@ -2,11 +2,17 @@ from typing import Optional
 from pydantic import BaseModel, field_validator
 
 
-class ConfigSchemaIn(BaseModel):
+class WindowPosition(BaseModel):
+    x: int
+    y: int
+
+
+class ConfigFileSchema(BaseModel):
     name: str
     autostart: bool
     url: str
     position: str
+    uuid: str
 
     @field_validator("position")
     @classmethod
@@ -25,12 +31,23 @@ class ConfigSchemaIn(BaseModel):
         return ",".join(position)
 
 
-class ConfigSchemaOut(ConfigSchemaIn):
-    uuid: str
-
-
-class ConfigSchemaUpdate(ConfigSchemaIn):
+class ConfigFileSchemaIn(BaseModel):
     name: Optional[str] = None
     autostart: Optional[bool] = None
     url: Optional[str] = None
+    position: Optional[WindowPosition] = None
+
+
+class ConfigFileSchemaUpdate(ConfigFileSchemaIn):
     position: Optional[str] = None
+
+
+class ConfigSchemaIn(BaseModel):
+    name: str
+    autostart: bool
+    url: str
+    position: WindowPosition
+
+
+class ConfigSchemaOut(ConfigSchemaIn):
+    uuid: str

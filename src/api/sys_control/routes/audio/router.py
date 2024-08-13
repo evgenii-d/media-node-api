@@ -1,5 +1,6 @@
 import re
-from fastapi import APIRouter, Body, HTTPException
+from typing import Annotated
+from fastapi import APIRouter, Body, HTTPException, Path
 
 from src.core.syscmd import SysCmdExec
 from src.api.sys_control.config import config_manager
@@ -48,11 +49,11 @@ def default_audio_device() -> AudioDeviceSchema:
         raise HTTPException(502, message) from e
 
 
-@router.post("/devices/default", responses={
+@router.post("/devices/default/{device}", responses={
     204: {"description": "Default audio device set successfully"},
     502: {"description": "Command execution failed"}
 }, status_code=204)
-def set_default_audio_device(device: str = Body()) -> None:
+def set_default_audio_device(device: str) -> None:
     command = SysCmdExec.run(["pacmd", "set-default-sink", device])
     if not command.success:
         raise HTTPException(502, "Command execution failed")
@@ -72,11 +73,11 @@ def audio_volume() -> int:
     return volume_level
 
 
-@router.post("/volume", responses={
+@router.post("/volume/{level}", responses={
     204: {"description": "Audio volume set successfully"},
     502: {"description": "Failed to set audio volume"}
 }, status_code=204)
-def set_audio_volume(level: int = Body(ge=0, le=150)) -> None:
+def set_audio_volume(level: Annotated[int, Path(ge=0, le=150)]) -> None:
     args = ["pactl", "set-sink-volume", "@DEFAULT_SINK@", f"{level}%"]
     command = SysCmdExec.run(args)
     if not command.success:
