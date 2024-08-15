@@ -1,10 +1,11 @@
 import re
 from typing import Annotated
-from fastapi import APIRouter, Body, HTTPException, Path
+from fastapi import APIRouter, HTTPException, Path
 
 from src.core.syscmd import SysCmdExec
 from src.api.sys_control.config import config_manager
-from src.api.sys_control.schemas import ConfigSchema, AudioDeviceSchema
+from src.api.sys_control.schemas import ConfigSchema
+from src.api.sys_control.routes.audio.schemas import AudioDeviceSchema
 
 router = APIRouter(prefix="/audio")
 
@@ -17,7 +18,7 @@ router = APIRouter(prefix="/audio")
 def audio_devices() -> list[AudioDeviceSchema]:
     command = SysCmdExec.run(["pacmd", "list-sinks"])
     if not command.success:
-        raise HTTPException(502, "Command execution failed")
+        raise HTTPException(502, "Failed to retrieve audio devices")
 
     result = []
     devices = re.findall(r"index: (\d+)\n.*name: <(.*)>", command.output)
@@ -38,7 +39,7 @@ def audio_devices() -> list[AudioDeviceSchema]:
 def default_audio_device() -> AudioDeviceSchema:
     command = SysCmdExec.run(["pacmd", "list-sinks"])
     if not command.success:
-        raise HTTPException(502, "Command execution failed")
+        raise HTTPException(502, "Failed to retrieve default audio device")
 
     device = re.search(r"\* index: (\d+)\n.*name: <(.+)>", command.output)
     try:
@@ -51,12 +52,12 @@ def default_audio_device() -> AudioDeviceSchema:
 
 @router.post("/devices/default/{device}", responses={
     204: {"description": "Default audio device set successfully"},
-    502: {"description": "Command execution failed"}
+    502: {"description": "Failed to set default audio device"}
 }, status_code=204)
 def set_default_audio_device(device: str) -> None:
     command = SysCmdExec.run(["pacmd", "set-default-sink", device])
     if not command.success:
-        raise HTTPException(502, "Command execution failed")
+        raise HTTPException(502, "Failed to set default audio device")
     data = ConfigSchema(audioDevice=device)
     config_manager.save_section(data.model_dump(exclude_none=True))
 

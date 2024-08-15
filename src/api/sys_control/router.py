@@ -8,8 +8,9 @@ from src.api.sys_control.config import config_manager
 from src.api.sys_control.schemas import ConfigSchema
 from src.api.sys_control.routes.wifi.router import router as wifi_router
 from src.api.sys_control.routes.audio.router import router as audio_router
-from src.api.sys_control.routes.displays.router import (router as
-                                                        displays_router)
+from src.api.sys_control.routes.displays.router import (
+    router as displays_router
+)
 
 router = APIRouter(prefix="/sys-control", tags=["system control"])
 router.include_router(displays_router)

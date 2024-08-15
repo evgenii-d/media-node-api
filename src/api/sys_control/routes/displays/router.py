@@ -4,8 +4,12 @@ from fastapi import APIRouter, HTTPException
 
 from src.core.syscmd import SysCmdExec
 from src.api.sys_control.config import xrandr_config
-from src.api.sys_control.schemas import (ConnectedDisplay, DisplayPosition,
-                                         DisplayResolution, DisplayConfig)
+from src.api.sys_control.routes.displays.schemas import (
+    ConnectedDisplay,
+    DisplayPosition,
+    DisplayResolution,
+    DisplayConfig
+)
 
 
 router = APIRouter(prefix="/displays")
