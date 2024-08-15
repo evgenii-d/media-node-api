@@ -8,12 +8,14 @@ from src.constants import AppDir, SystemctlCommand
 from src.core.syscmd import SysCmdExec
 from src.core.filesys import get_dir_files, aio_save_files_to_dir
 from src.core.configmgr import ConfigManager
-from src.api.web_browser.schemas import (WindowPosition,
-                                         ConfigSchemaIn,
-                                         ConfigSchemaOut,
-                                         ConfigFileSchema,
-                                         ConfigFileSchemaIn,
-                                         ConfigFileSchemaUpdate)
+from src.api.web_browser.schemas import (
+    WindowPosition,
+    ConfigSchemaIn,
+    ConfigSchemaOut,
+    ConfigFileSchema,
+    ConfigFileSchemaIn,
+    ConfigFileSchemaUpdate
+)
 
 router = APIRouter(prefix="/web-browser", tags=["web browser"])
 browser_configs = AppDir.CONFIGS.value/"web_browser"
@@ -31,8 +33,7 @@ async def upload_static_files(file: UploadFile) -> None:
 
     if not zipfile.is_zipfile(archive):
         archive.unlink()
-        raise HTTPException(400, (f"Invalid file type: {file.content_type}. "
-                                  "Only .zip files allowed."))
+        raise HTTPException(400, "Only a .zip file is allowed.")
 
     # remove all files and folders from the "public" directory
     for item in (AppDir.STATIC_PUBLIC.value).glob("*"):
@@ -141,8 +142,9 @@ def command_all_instancies(command: SystemctlCommand) -> None:
     args = ["systemctl", "--user"]
     match command:
         case SystemctlCommand.START:
-            args.extend(["start",
-                         "web-browser-instances-manager@start-all.service"])
+            args.extend([
+                "start", "web-browser-instances-manager@start-all.service"
+            ])
         case _:
             args.extend([command.value, "web-browser@*.service"])
     if not SysCmdExec.run(args).success:
@@ -160,8 +162,10 @@ def command_browser_instance(instance_uuid: str,
     file = browser_configs/f"{instance_uuid}.ini"
     if not file.exists():
         raise HTTPException(404, "Browser instance not found")
-    args = ["systemctl", "--user", command.value,
-            f"web-browser@{instance_uuid}.service"]
+    args = [
+        "systemctl", "--user", command.value,
+        f"web-browser@{instance_uuid}.service"
+    ]
     if not SysCmdExec.run(args).success:
         message = f"Failed to execute '{command.value}' command"
         raise HTTPException(502, message)
