@@ -163,5 +163,8 @@ cython_debug/
 .vscode
 resources/*
 resources/static/*
+resources/configs/*
 !resources/static/
 !resources/static/openapi/
+!resources/configs/
+!resources/configs/sys_control.ini
