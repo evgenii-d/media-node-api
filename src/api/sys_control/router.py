@@ -1,8 +1,8 @@
 import socket
-from uuid import uuid4
 from typing import Annotated, Literal
 from fastapi import APIRouter, HTTPException, Path
 
+from src.constants import AppDir
 from src.core.syscmd import SysCmdExec
 from src.api.sys_control.config import config_manager
 from src.api.sys_control.schemas import ConfigSchema
@@ -41,12 +41,10 @@ def hostname() -> str:
 
 
 @router.post("/hostname", responses={
-    200: {"description": "New hostname generated successfully"}
-}, status_code=200)
-def change_hostname() -> str:
-    data = ConfigSchema(generatedHostname=f"node-{uuid4().hex}")
-    config_manager.save_section(data.model_dump(exclude_none=True))
-    return data.generatedHostname
+    204: {"description": "Hostname file created successfully"}
+}, status_code=204)
+def create_hostname_file() -> None:
+    (AppDir.CONFIGS.value/"hostname.txt").touch()
 
 
 @router.post("/power/{command}", responses={

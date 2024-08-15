@@ -20,11 +20,13 @@ Execute `setup_project.sh`
 ./scripts/setup_project.sh
 ```
 
-(Only first time) Start API manually
+Execute `install_service.sh`
 
 ```bash
-./venv/bin/python -m src.main
+./scripts/install_service.sh
 ```
+
+Reboot
 
 ## System configuration
 
