@@ -2,7 +2,7 @@ import re
 import pathlib
 from uuid import uuid4
 from typing import Annotated
-from fastapi import APIRouter, Body, HTTPException, Path
+from fastapi import APIRouter, HTTPException, Path
 
 from src.constants import AppDir, SystemctlCommand
 from src.core.vlcrc import VLCRemoteControl
@@ -10,8 +10,12 @@ from src.core.syscmd import SysCmdExec
 from src.core.filesys import get_dir_files
 from src.core.configmgr import ConfigManager
 from src.api.media_player.constants import PlayerControlCommands
-from src.api.media_player.schemas import (ConfigFileSchema, ConfigSchemaIn,
-                                          ConfigSchemaOut, ConfigSchemaUpdate)
+from src.api.media_player.schemas import (
+    ConfigFileSchema,
+    ConfigSchemaIn,
+    ConfigSchemaOut,
+    ConfigSchemaUpdate
+)
 
 router = APIRouter(prefix="/media-player", tags=["media player"])
 player_configs = AppDir.CONFIGS.value/"media_player"
@@ -79,8 +83,10 @@ def create_player_instance(data: ConfigSchemaIn) -> ConfigSchemaOut:
     502: {"description": "Failed to retrieve active instances"}
 }, status_code=200)
 def active_instances() -> list[str]:
-    args = ["systemctl", "--user", "list-units",
-            "--type", "service", "--state", "active,running"]
+    args = [
+        "systemctl", "--user", "list-units",
+        "--type", "service", "--state", "active,running"
+    ]
     command = SysCmdExec.run(args)
     if not command.success:
         raise HTTPException(502, "Failed to retrieve active instances")
@@ -122,8 +128,10 @@ def manage_player_instances(command: SystemctlCommand) -> None:
     args = ["systemctl", "--user"]
     match command:
         case SystemctlCommand.START:
-            args.extend(["start",
-                         "media-player-instances-manager@start-all.service"])
+            args.extend([
+                "start",
+                "media-player-instances-manager@start-all.service"
+            ])
         case _:
             args.extend([command.value, "media-player@*.service"])
     if not SysCmdExec.run(args).success:

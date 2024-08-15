@@ -3,10 +3,12 @@ from typing import Optional
 from pydantic import BaseModel, Field, field_validator
 
 from src.constants import AppDir
-from src.api.media_player.constants import (AudioOutputModule,
-                                            VideoOutputModule,
-                                            PlaybackOption,
-                                            MediaPlayerInterface)
+from src.api.media_player.constants import (
+    AudioOutputModule,
+    VideoOutputModule,
+    PlaybackOption,
+    MediaPlayerInterface
+)
 
 
 class ConfigSchemaIn(BaseModel, use_enum_values=True):
