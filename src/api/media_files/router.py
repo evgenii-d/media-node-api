@@ -3,10 +3,15 @@ from fastapi.responses import FileResponse
 
 from src.constants import AppDir
 from src.api.media_files.constants import MIMEType
-from src.api.media_files.schemas import (AvailableFilesSchema,
-                                         UploadOutSchema, MimeTypeSchema)
-from src.core.filesys import (get_dir_files, get_dir_size,
-                              aio_save_files_to_dir)
+from src.api.media_files.schemas import (
+    AvailableFilesSchema,
+    UploadOutSchema,
+    MimeTypeSchema
+)
+from src.core.filesys import (
+    get_dir_files, get_dir_size,
+    aio_save_files_to_dir
+)
 
 
 router = APIRouter(prefix="/media-files", tags=["media files"])
@@ -41,8 +46,10 @@ async def upload_files(files: list[UploadFile]) -> UploadOutSchema:
         else:
             rejected_files.append(file)
     await aio_save_files_to_dir(accepted_files, AppDir.MEDIA.value)
-    return UploadOutSchema(accepted=[i.filename for i in accepted_files],
-                           rejected=[i.filename for i in rejected_files])
+    return UploadOutSchema(
+        accepted=[i.filename for i in accepted_files],
+        rejected=[i.filename for i in rejected_files]
+    )
 
 
 @router.delete("/{filename}", responses={
@@ -70,5 +77,7 @@ def download_file(filename: str) -> FileResponse:
     200: {"description": "Supported MIME types retrieved successfully"}
 }, status_code=200)
 def supported_types() -> list[MimeTypeSchema]:
-    return [MimeTypeSchema(extension=member.name.lower(), type=member.value)
-            for member in MIMEType]
+    return [
+        MimeTypeSchema(extension=member.name.lower(), type=member.value)
+        for member in MIMEType
+    ]
