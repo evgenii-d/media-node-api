@@ -3,9 +3,9 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, Path
 
 from src.core.syscmd import SysCmdExec
-from src.api.sys_control.config import config_manager
-from src.api.sys_control.schemas import ConfigSchema
-from src.api.sys_control.routes.audio.schemas import AudioDeviceSchema
+from src.api.system_control.config import config_manager
+from src.api.system_control.schemas import ConfigSchema
+from src.api.system_control.routes.audio.schemas import AudioDeviceSchema
 
 router = APIRouter(prefix="/audio")
 

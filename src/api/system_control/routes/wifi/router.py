@@ -2,7 +2,7 @@ import re
 from fastapi import APIRouter, HTTPException
 
 from src.core.syscmd import SysCmdExec
-from src.api.sys_control.routes.wifi.schemas import (
+from src.api.system_control.routes.wifi.schemas import (
     WifiInterfaceSchema,
     SavedWifiConnectionSchema,
     ConnectWifiNetworkSchema,

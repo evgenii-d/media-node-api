@@ -31,7 +31,6 @@ Wants=network-online.target
 [Service]
 Restart=always
 Environment="DISPLAY=:0"
-EnvironmentFile=$configs_dir/sys_control.ini
 ExecStart=$scripts_dir/run_app.sh
 
 [Install]
