@@ -3,7 +3,7 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException
 
 from src.core.syscmd import SysCmdExec
-from src.api.system_control.config import xrandr_config
+from src.api.system_control.config import XRANDR_CONFIG
 from src.api.system_control.routes.displays.schemas import (
     ConnectedDisplay,
     DisplayPosition,
@@ -79,10 +79,10 @@ def displays_detection(command: Literal["start", "stop", "restart"]) -> None:
     404: {"description": "Displays configuration not created"}
 }, status_code=200, response_model_exclude_none=True)
 def displays_config() -> list[DisplayConfig]:
-    if not xrandr_config.exists():
+    if not XRANDR_CONFIG.exists():
         raise HTTPException(404, "Displays configuration not created")
 
-    xrandr_data = xrandr_config.read_text("utf-8")
+    xrandr_data = XRANDR_CONFIG.read_text("utf-8")
     if not xrandr_data:
         raise HTTPException(404, "Displays configuration not created")
 
@@ -128,14 +128,14 @@ def apply_display_config(display: DisplayConfig) -> None:
     if not SysCmdExec.run(args).success:
         raise HTTPException(502, "Command execution failed")
 
-    if not xrandr_config.exists():
-        xrandr_config.write_text(" ".join(args), "utf-8")
+    if not XRANDR_CONFIG.exists():
+        XRANDR_CONFIG.write_text(" ".join(args), "utf-8")
         return
 
-    xrandr_data = xrandr_config.read_text("utf-8")
+    xrandr_data = XRANDR_CONFIG.read_text("utf-8")
     if display.name not in xrandr_data:
         xrandr_data = f'{" ".join(args)}\n{xrandr_data}'
-        xrandr_config.write_text(xrandr_data, "utf-8")
+        XRANDR_CONFIG.write_text(xrandr_data, "utf-8")
         return
 
     stored_args = []
@@ -152,7 +152,7 @@ def apply_display_config(display: DisplayConfig) -> None:
         xrandr_data = [i.replace(" --primary", "")
                        if " --primary" in i else i for i in xrandr_data]
     xrandr_data.insert(0, " ".join(merged_args))
-    xrandr_config.write_text("\n".join(xrandr_data), "utf-8")
+    XRANDR_CONFIG.write_text("\n".join(xrandr_data), "utf-8")
 
 
 @router.delete("/config/{display_name}", responses={
@@ -160,13 +160,13 @@ def apply_display_config(display: DisplayConfig) -> None:
     404: {"description": "Display configuration not found"}
 }, status_code=204)
 def delete_display_config(display_name: str) -> None:
-    if not xrandr_config.exists():
+    if not XRANDR_CONFIG.exists():
         raise HTTPException(404, "Displays configuration not created")
 
-    xrandr_data = xrandr_config.read_text("utf-8").splitlines()
+    xrandr_data = XRANDR_CONFIG.read_text("utf-8").splitlines()
     for line in xrandr_data:
         if display_name in line.split():
             xrandr_data.remove(line)
-            xrandr_config.write_text("\n".join(xrandr_data), "utf-8")
+            XRANDR_CONFIG.write_text("\n".join(xrandr_data), "utf-8")
             return
     raise HTTPException(404, "Display configuration not found")

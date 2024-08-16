@@ -3,12 +3,12 @@ from fastapi import HTTPException
 
 from src.core.vlcrc import VLCRemoteControl
 from src.core.configmgr import ConfigManager
-from src.api.media_player.config import configs_dir
+from src.api.media_player.config import PLAYER_CONFIGS
 from src.api.media_player.schemas import ConfigFileSchema
 
 
 def get_player_config(instance_uuid: str) -> pathlib.Path:
-    file_path = configs_dir/f"{instance_uuid}.ini"
+    file_path = PLAYER_CONFIGS/f"{instance_uuid}.ini"
     if file_path.exists():
         return file_path
     raise HTTPException(404, "Player instance not found")

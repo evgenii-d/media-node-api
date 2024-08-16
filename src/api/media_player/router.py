@@ -5,7 +5,7 @@ from src.constants import AppDir, SystemctlCommand
 from src.core.vlcrc import VLCRemoteControl
 from src.core.syscmd import SysCmdExec
 from src.core.configmgr import ConfigManager
-from src.api.media_player.config import configs_dir
+from src.api.media_player.config import PLAYER_CONFIGS
 from src.api.media_player.schemas import ConfigSchemaUpdate
 from src.api.media_player.service import get_player_config, vlc_remote_control
 from src.api.media_player.constants import PlayerControlCommands
@@ -24,7 +24,7 @@ router.include_router(instances_control)
 }, status_code=204)
 def command_player_service(instance_uuid: str,
                            command: SystemctlCommand) -> None:
-    file = configs_dir/f"{instance_uuid}.ini"
+    file = PLAYER_CONFIGS/f"{instance_uuid}.ini"
     if not file.exists():
         raise HTTPException(404, "Player instance not found")
     args = ["systemctl", "--user", command.value,

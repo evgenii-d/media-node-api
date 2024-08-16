@@ -7,7 +7,7 @@ from src.constants import SystemctlCommand
 from src.core.syscmd import SysCmdExec
 from src.core.filesys import get_dir_files
 from src.core.configmgr import ConfigManager
-from src.api.media_player.config import configs_dir
+from src.api.media_player.config import PLAYER_CONFIGS
 from src.api.media_player.schemas import (
     ConfigFileSchema,
     ConfigSchemaIn,
@@ -24,13 +24,13 @@ router = APIRouter(prefix="/instances")
     502: {"description": "Failed to execute command"}
 }, status_code=200)
 def player_instances() -> list[ConfigSchemaOut]:
-    files = get_dir_files(configs_dir)
+    files = get_dir_files(PLAYER_CONFIGS)
     if not files:
         raise HTTPException(404, "No player instances found")
 
     instances = []
     for file in files:
-        data = ConfigManager(configs_dir/file).load_section()
+        data = ConfigManager(PLAYER_CONFIGS/file).load_section()
         config = ConfigSchemaOut(**data)
         config.playlist = pathlib.Path(config.playlist).stem
         instances.append(config)
@@ -45,7 +45,7 @@ def create_player_instance(data: ConfigSchemaIn) -> ConfigSchemaOut:
     ports: list[int] = []
 
     # Extract port numbers from player configuration files
-    for file in configs_dir.iterdir():
+    for file in PLAYER_CONFIGS.iterdir():
         value = ConfigSchemaOut(**ConfigManager(file).load_section()).rcPort
         ports.append(value)
 
@@ -56,7 +56,7 @@ def create_player_instance(data: ConfigSchemaIn) -> ConfigSchemaOut:
         missing_ports = list(set(ports_range) - set(ports))
         port = min(missing_ports) if missing_ports else max(ports) + 1
 
-    new_config_path = configs_dir/f"{uuid4().hex}.ini"
+    new_config_path = PLAYER_CONFIGS/f"{uuid4().hex}.ini"
     new_config = ConfigFileSchema(
         **data.model_dump(),
         rcPort=port,
@@ -92,7 +92,7 @@ def active_instances() -> list[str]:
 }, status_code=204)
 def update_player_instance(instance_uuid: str,
                            data: ConfigSchemaUpdate) -> None:
-    file = configs_dir/f"{instance_uuid}.ini"
+    file = PLAYER_CONFIGS/f"{instance_uuid}.ini"
     if not file.exists():
         raise HTTPException(404, "Player instance not found")
     ConfigManager(file).save_section(data.model_dump(exclude_none=True))
@@ -103,7 +103,7 @@ def update_player_instance(instance_uuid: str,
     404: {"description": "Player instance not found"}
 }, status_code=204)
 def delete_player_instance(instance_uuid: str) -> None:
-    file = configs_dir/f"{instance_uuid}.ini"
+    file = PLAYER_CONFIGS/f"{instance_uuid}.ini"
     if not file.exists():
         raise HTTPException(404, "Player instance not found")
     file.unlink()
