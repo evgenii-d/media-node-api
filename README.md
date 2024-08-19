@@ -48,6 +48,7 @@ Modify `/etc/sudoers` with `visudo`
 <USER_NAME> ALL=NOPASSWD: /PATH/TO/hostnamectl
 <USER_NAME> ALL=NOPASSWD: /PATH/TO/nmcli
 <USER_NAME> ALL=NOPASSWD: /PATH/TO/change_hostname.sh
+<USER_NAME> ALL=NOPASSWD: /PATH/TO/toggle_mouse_cursor.sh
 ```
 
 ## Software installation
@@ -117,6 +118,39 @@ Enable power button. `GPIO3` by default e.g., physical pins 5 and 6
 
 ```txt
 dtoverlay=gpio-shutdown
+```
+
+### Potential problems
+
+#### Failed to build uvloop
+
+```txt
+...
+        CC       src/unix/libuv_la-proctitle.lo
+        CC       src/unix/libuv_la-random-getrandom.lo
+        CC       src/unix/libuv_la-random-sysctl-linux.lo
+        CCLD     libuv.la
+      building 'uvloop.loop' extension
+      creating build/temp.linux-aarch64-cpython-311
+      creating build/temp.linux-aarch64-cpython-311/uvloop
+      arm-linux-gnueabihf-gcc -Wsign-compare -DNDEBUG -g -fwrapv -O2 -Wall -g -fwrapv -O2 -fPIC -I/home/node/apps/media-node-api/venv/include -I/usr/include/python3.11 -I/tmp/pip-install-3by0vq7n/uvloop_d243ec4a777747d092d525936a9a3fd3/vendor/libuv/include -c uvloop/loop.c -o build/temp.linux-aarch64-cpython-311/uvloop/loop.o -O2
+      uvloop/loop.c:22:10: fatal error: Python.h: No such file or directory
+         22 | #include "Python.h"
+            |          ^~~~~~~~~~
+      compilation terminated.
+      error: command '/usr/bin/arm-linux-gnueabihf-gcc' failed with exit code 1
+      [end of output]
+
+  note: This error originates from a subprocess, and is likely not a problem with pip.
+  ERROR: Failed building wheel for uvloop
+Failed to build uvloop
+ERROR: Could not build wheels for uvloop, which is required to install pyproject.toml-based projects
+```
+
+Solution:
+
+```bash
+sudo apt install python-dev-is-python3
 ```
 
 ## Notes

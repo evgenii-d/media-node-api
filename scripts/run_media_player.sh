@@ -38,7 +38,7 @@ misc_options=(
     --meta-title=
 )
 
-if [[ "${hotkeys^^}" == "TRUE" ]]; then
+if [[ "${hotkeys,,}" == "true" ]]; then
     hotkeys_options=(
         --global-key-play-pause="Tab"
         --key-next="Page Up"

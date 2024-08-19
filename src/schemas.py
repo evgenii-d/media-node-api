@@ -1,9 +1,12 @@
-from pydantic import BaseModel
+from typing import Annotated
+from pydantic import BaseModel, StringConstraints
 
 
-class AppConfigSchema(BaseModel):
-    host: str = "0.0.0.0"
-    port: int = 5000
-    reload: bool = False
-    debug: bool = False
-    openapi: bool = False
+class ConfigSchema(BaseModel):
+    host: str = None
+    port: int = None
+    reload: bool = None
+    debug: bool = None
+    openapi: bool = None
+    nodeName: Annotated[str, StringConstraints(
+        strip_whitespace=True, max_length=40)] = None

@@ -1,10 +1,19 @@
-from src.constants import AppDir, AppFile
-from src.schemas import AppConfigSchema
+from src.constants import AppDir
+from src.schemas import ConfigSchema
 from src.core.configmgr import ConfigManager
 
 for directory in AppDir:
     directory.value.mkdir(exist_ok=True)
 
-default_config = {"DEFAULT": AppConfigSchema().model_dump()}
-config_manager = ConfigManager(AppFile.APP_CONFIG.value, default_config)
-app_config = AppConfigSchema.model_validate(config_manager.load_section())
+APP_CONFIG = AppDir.CONFIGS.value/"app.ini"
+DEFAULT_DATA = {
+    "DEFAULT": ConfigSchema(
+        host="0.0.0.0",
+        port=5000,
+        reload=False,
+        debug=False,
+        openapi=False,
+        nodeName="Media Node"
+    ).model_dump()
+}
+config_manager = ConfigManager(APP_CONFIG, DEFAULT_DATA)

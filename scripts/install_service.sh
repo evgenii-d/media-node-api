@@ -4,6 +4,7 @@ app_dir="$(dirname "$(dirname "$(realpath "$0")")")"
 scripts_dir="$app_dir/scripts"
 configs_dir="$app_dir/resources/configs"
 openbox_autostart="$HOME/.config/openbox/autostart.sh"
+xresources_file="$HOME/.Xresources"
 
 # Check for root privileges
 if [ "$EUID" -eq 0 ]; then
@@ -111,6 +112,21 @@ cat <<EOF >"$openbox_autostart"
 "$scripts_dir/autostart.sh"
 EOF
 chmod +x "$openbox_autostart"
+
+echo "> Add .Xresources file"
+[ ! -f "$xresources_file" ] && touch "$xresources_file"
+
+echo " + Set mouse cursor size (24)"
+# Check if the cursor size exist in .Xresources
+if grep -qF "Xcursor.size:" "$xresources_file"; then
+    # If cursor size exist, replace the line containing it
+    sed -i \
+        "s/^Xcursor.size:\s.*$/Xcursor.size: 24/" \
+        "$xresources_file"
+else
+    # If it doesn't exist, add the new line to the end of the file
+    echo "Xcursor.size: 24" | tee -a "$xresources_file" >/dev/null
+fi
 
 echo
 echo Done

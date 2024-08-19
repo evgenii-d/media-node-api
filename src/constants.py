@@ -12,11 +12,6 @@ class AppDir(Enum):
     STATIC_PUBLIC = RESOURCES/"static/public"
 
 
-class AppFile(Enum):
-    APP_VERSION = AppDir.BASE.value/"VERSION"
-    APP_CONFIG = AppDir.CONFIGS.value/"app.ini"
-
-
 class SystemctlCommand(Enum):
     START = "start"
     STOP = "stop"

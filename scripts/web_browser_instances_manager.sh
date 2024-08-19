@@ -51,7 +51,7 @@ case "${command,,}" in
             cut -d "=" -f2 | tr -d "\r" | xargs)
         uuid=$(grep "uuid" "$file" | cut -d "=" -f2 | tr -d "\r" | xargs)
 
-        if [[ "${autostart^^}" == "TRUE" ]]; then
+        if [[ "${autostart,,}" == "true" ]]; then
             echo "'$uuid' - enabled, starting ..."
             if ! systemctl --user start web-browser@"$uuid".service; then
                 echo "Error starting service for instance '$uuid'" >&2
