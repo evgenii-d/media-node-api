@@ -4,7 +4,7 @@ from src.api.system_control.schemas import ConfigSchema
 
 MODULE_CONFIG = AppDir.CONFIGS.value/"system_control.ini"
 XRANDR_CONFIG = AppDir.CONFIGS.value/"xrandr.txt"
-HOSTNAME_TXT = AppDir.CONFIGS.value/"hostname.txt"
+DUMMY_HOSTNAME = AppDir.CONFIGS.value/"hostname.txt"
 CURSOR_MANAGER = AppDir.BASE.value/"scripts/mouse_cursor_manager.sh"
 DEFAULT_DATA = {
     "DEFAULT": ConfigSchema(

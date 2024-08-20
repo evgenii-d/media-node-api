@@ -5,7 +5,7 @@ from fastapi import FastAPI, HTTPException, Path
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.config import config_manager
+from src.config import VERSION_FILE, config_manager
 from src.schemas import ConfigSchema
 from src.constants import AppDir
 from src.api.openapi.router import router as openapi
@@ -61,7 +61,7 @@ def change_node_name(new_name: Annotated[str, Path(max_length=40)]) -> None:
 }, status_code=200)
 def app_version() -> str:
     try:
-        return (AppDir.BASE.value/"VERSION").read_text("utf-8")
+        return VERSION_FILE.read_text("utf-8")
     except FileNotFoundError as error:
         raise HTTPException(404, "App version not found") from error
 

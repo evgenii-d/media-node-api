@@ -3,7 +3,7 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException
 
 from src.core.syscmd import SysCmdExec
-from src.api.system_control.config import HOSTNAME_TXT, CURSOR_MANAGER
+from src.api.system_control.config import DUMMY_HOSTNAME, CURSOR_MANAGER
 from src.api.system_control.routes.wifi.router import router as wifi_router
 from src.api.system_control.routes.audio.router import router as audio_router
 from src.api.system_control.routes.displays.router import (
@@ -27,7 +27,7 @@ def hostname() -> str:
     204: {"description": "Hostname file created successfully"}
 }, status_code=204)
 def create_hostname_file() -> None:
-    HOSTNAME_TXT.touch()
+    DUMMY_HOSTNAME.touch()
 
 
 @router.post("/power/{command}", responses={
