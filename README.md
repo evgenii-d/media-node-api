@@ -48,7 +48,7 @@ Modify `/etc/sudoers` with `visudo`
 <USER_NAME> ALL=NOPASSWD: /PATH/TO/hostnamectl
 <USER_NAME> ALL=NOPASSWD: /PATH/TO/nmcli
 <USER_NAME> ALL=NOPASSWD: /PATH/TO/change_hostname.sh
-<USER_NAME> ALL=NOPASSWD: /PATH/TO/toggle_mouse_cursor.sh
+<USER_NAME> ALL=NOPASSWD: /PATH/TO/mouse_cursor_manager.sh
 ```
 
 ## Software installation
@@ -57,7 +57,7 @@ Modify `/etc/sudoers` with `visudo`
 sudo apt update && sudo apt -y upgrade
 sudo apt install -y xserver-xorg openbox accountsservice lightdm \
                     pulseaudio network-manager \
-                    python3-tk ufw chromium vlc \
+                    python3-tk ufw chromium vlc 
 ```
 
 ### LightDM
@@ -120,7 +120,7 @@ Enable power button. `GPIO3` by default e.g., physical pins 5 and 6
 dtoverlay=gpio-shutdown
 ```
 
-### Potential problems
+### Troubleshooting
 
 #### Failed to build uvloop
 
@@ -152,10 +152,6 @@ Solution:
 ```bash
 sudo apt install python-dev-is-python3
 ```
-
-## Notes
-
-Static files address: <http://IP_ADDRESS:5000/static/public/>
 
 ## Links
 

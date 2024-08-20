@@ -113,7 +113,7 @@ cat <<EOF >"$openbox_autostart"
 EOF
 chmod +x "$openbox_autostart"
 
-echo "> Add .Xresources file"
+echo "> Creating .Xresources file"
 [ ! -f "$xresources_file" ] && touch "$xresources_file"
 
 echo " + Set mouse cursor size (24)"
