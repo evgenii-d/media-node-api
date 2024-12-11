@@ -1,5 +1,9 @@
 # Media Node API
 
+## Requirements
+
+* Operating System: Debian 10 or higher
+
 ## Installation
 
 Follow these steps to set up the project on your system
