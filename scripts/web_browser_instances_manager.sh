@@ -11,9 +11,8 @@ fi
 
 case "${command,,}" in
 
+# Start instances with enabled 'autostart'
 "autostart")
-    echo "Start instances with enabled 'autostart'"
-
     configs_array=()
     profiles_array=()
     profiles_dir="$HOME/.config/browser-profiles"
@@ -62,9 +61,8 @@ case "${command,,}" in
     done
     ;;
 
+# Start all available instances
 "start-all")
-    echo "Start all available instances"
-
     for config in "$configs_dir"/*.ini; do
         uuid="$(basename "$config" .ini)"
 

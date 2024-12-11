@@ -3,12 +3,6 @@ command="$1"
 lightdm_config_path="/etc/lightdm/lightdm.conf"
 xresources_file="/home/$SUDO_USER/.Xresources"
 
-# Check for root privileges
-if [ "$EUID" -ne 0 ]; then
-    echo "This script must be run with root privileges." >&2
-    exit 1
-fi
-
 # Check if a cursor command was provided
 if [ -z "$command" ]; then
     echo "A cursor 'command' is required but was not provided." >&2
@@ -17,31 +11,33 @@ fi
 
 case "${command,,}" in
 
-"enable")
-    echo "Enable mouse cursor"
-    sed -i \
+# Show mouse cursor
+"show")
+    sudo sed -i \
         's/^\(xserver-command\s*=\s*\)\(.*\)$/\1X -s 0 dpms :0/' \
         "$lightdm_config_path"
     ;;
 
-"disable")
-    echo "Disable mouse cursor"
-    sed -i \
+# Hide mouse cursor
+"hide")
+    sudo sed -i \
         's/^\(xserver-command\s*=\s*\)\(.*\)$/\1X -s 0 dpms :0 -nocursor/' \
         "$lightdm_config_path"
     ;;
 
+# Get mouse cursor size
 "get-size")
     if [ ! -f "$xresources_file" ]; then
         echo -1
     elif grep -qF "Xcursor.size:" "$xresources_file"; then
-        sed -n "s/Xcursor.size: //p" "$xresources_file" | xargs
+        sudo sed -n "s/Xcursor.size: //p" "$xresources_file" | xargs
     else
         echo -1
     fi
     exit 0
     ;;
 
+# Set mouse cursor size
 "set-size")
     # Check if size was provided
     if [ -z "$2" ]; then
@@ -49,7 +45,6 @@ case "${command,,}" in
         exit 2
     fi
 
-    echo "Setting mouse cursor size to '$2'"
     # Create .Xresources if it doesn't exist
     if [ ! -f "$xresources_file" ]; then
         sudo -u "$SUDO_USER" touch "$xresources_file"

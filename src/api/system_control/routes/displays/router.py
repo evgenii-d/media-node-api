@@ -12,7 +12,7 @@ from src.api.system_control.routes.displays.schemas import (
 )
 
 
-router = APIRouter(prefix="/displays")
+router = APIRouter(prefix="/displays", tags=["displays"])
 
 
 def xrandr_to_dict(xrandr_args: list[str]) -> dict[str, str]:

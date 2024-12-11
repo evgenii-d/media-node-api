@@ -1,5 +1,5 @@
 #!/bin/bash
-# !!! Environment Variables: hotkeys, interface
+# Environment Variables: hotkeys, interface
 main_options=(
     "$playlist"
     -f
@@ -38,6 +38,7 @@ misc_options=(
     --meta-title=
 )
 
+# shellcheck disable=SC2154
 if [[ "${hotkeys,,}" == "true" ]]; then
     hotkeys_options=(
         --global-key-play-pause="Tab"
@@ -46,6 +47,7 @@ if [[ "${hotkeys,,}" == "true" ]]; then
     )
 fi
 
+# shellcheck disable=SC2154
 case "${interface,,}" in
 
 "dummy")

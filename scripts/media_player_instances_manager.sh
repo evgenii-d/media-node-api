@@ -11,9 +11,8 @@ fi
 
 case "${command,,}" in
 
+# Start instances with enabled 'autostart'
 "autostart")
-    echo "Start instances with enabled 'autostart'"
-
     for file in "$configs_dir"/*; do
         autostart=$(grep "autostart" "$file" |
             cut -d "=" -f2 | tr -d "\r" | xargs)
@@ -30,9 +29,8 @@ case "${command,,}" in
     done
     ;;
 
+# Start all available instances
 "start-all")
-    echo "Start all available instances"
-
     for config in "$configs_dir"/*.ini; do
         uuid="$(basename "$config" .ini)"
 

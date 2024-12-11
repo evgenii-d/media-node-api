@@ -8,8 +8,8 @@ class AppDir(Enum):
     CONFIGS = RESOURCES/"configs"
     MEDIA = RESOURCES/"media"
     PLAYLISTS = RESOURCES/"playlists"
-    STATIC = RESOURCES/"static"
-    STATIC_PUBLIC = RESOURCES/"static/public"
+    STATIC_FILES = RESOURCES/"static_files"
+    STATIC_FILES_PUBLIC = STATIC_FILES/"public"
 
 
 class SystemctlCommand(Enum):

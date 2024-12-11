@@ -22,7 +22,7 @@ router.include_router(instances_control)
     404: {"description": "Player instance not found"},
     502: {"description": "Failed to execute command"}
 }, status_code=204)
-def command_player_service(instance_uuid: str,
+def control_instance_service(instance_uuid: str,
                            command: SystemctlCommand) -> None:
     file = PLAYER_CONFIGS/f"{instance_uuid}.ini"
     if not file.exists():

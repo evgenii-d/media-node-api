@@ -3,7 +3,7 @@ app_dir="$(dirname "$(dirname "$(realpath "$0")")")"
 configs_dir="$app_dir/resources/configs"
 system_control_config="$configs_dir/system_control.ini"
 
-# Grab the default audio device and volume from the config
+# Get the default audio device and volume from the config
 audioDevice=$(grep "audioDevice" "$system_control_config" |
     cut -d "=" -f2 | tr -d "\r" | xargs)
 volume=$(grep "volume" "$system_control_config" |

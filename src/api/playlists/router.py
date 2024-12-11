@@ -21,7 +21,7 @@ def get_playlist_path(playlist_name: str) -> Path:
     200: {"description": "Playlists retrieved successfully"},
     404: {"description": "Playlists not found"}
 }, status_code=200)
-def available_playlists() -> list[str]:
+def list_available_playlists() -> list[str]:
     files = get_dir_files(AppDir.PLAYLISTS.value, suffix=False)
     files.sort()
     if files:
@@ -36,7 +36,7 @@ def available_playlists() -> list[str]:
           "model": PlaylistSchema},
     404: {"description": "Playlist files not found"}
 }, status_code=201)
-def create_or_replace_playlist(playlist: PlaylistSchema) -> JSONResponse:
+def create_new_playlist(playlist: PlaylistSchema) -> JSONResponse:
     files = check_dir_files(playlist.files, AppDir.MEDIA.value)
     if len(files.available) == 0:
         raise HTTPException(404, "Playlist files not found")
@@ -53,7 +53,7 @@ def create_or_replace_playlist(playlist: PlaylistSchema) -> JSONResponse:
     204: {"description": "Playlist deleted successfully"},
     404: {"description": "Playlist not found"}
 }, status_code=204)
-def delete_playlists(playlist_name: str) -> None:
+def delete_playlist(playlist_name: str) -> None:
     get_playlist_path(playlist_name).unlink()
 
 

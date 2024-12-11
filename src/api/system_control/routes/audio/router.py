@@ -1,5 +1,5 @@
 import re
-from typing import Annotated
+from typing import Annotated, Literal
 from fastapi import APIRouter, HTTPException, Path
 
 from src.core.syscmd import SysCmdExec
@@ -7,7 +7,7 @@ from src.api.system_control.config import config_manager
 from src.api.system_control.schemas import ConfigSchema
 from src.api.system_control.routes.audio.schemas import AudioDeviceSchema
 
-router = APIRouter(prefix="/audio")
+router = APIRouter(prefix="/audio", tags=["audio"])
 
 
 @router.get("/devices", responses={
@@ -15,7 +15,7 @@ router = APIRouter(prefix="/audio")
     404: {"description": "Audio devices not found"},
     502: {"description": "Failed to retrieve audio devices"}
 }, status_code=200)
-def audio_devices() -> list[AudioDeviceSchema]:
+def list_audio_devices() -> list[AudioDeviceSchema]:
     command = SysCmdExec.run(["pacmd", "list-sinks"])
     if not command.success:
         raise HTTPException(502, "Failed to retrieve audio devices")
@@ -60,6 +60,16 @@ def set_default_audio_device(device: str) -> None:
         raise HTTPException(502, "Failed to set default audio device")
     data = ConfigSchema(audioDevice=device)
     config_manager.save_section(data.model_dump(exclude_none=True))
+
+
+@router.post("/devices/mute/{device}", responses={
+    204: {"description": "Mute state changed successfully"},
+    502: {"description": "Failed to execute the command"}
+}, status_code=204)
+def mute_audio_device(device: str, value: Literal["0", "1"]) -> None:
+    command = SysCmdExec.run(["pactl", "set-sink-mute", device, value])
+    if not command.success:
+        raise HTTPException(502, "Failed to execute the command")
 
 
 @router.get("/volume", responses={

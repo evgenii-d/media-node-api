@@ -1,14 +1,14 @@
 import logging
-from typing import Annotated
 import uvicorn
-from fastapi import FastAPI, HTTPException, Path
+from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.config import VERSION_FILE, config_manager
+from src.config import config_manager
 from src.schemas import ConfigSchema
 from src.constants import AppDir
 from src.api.openapi.router import router as openapi
+from src.api.app.router import router as app_router
 from src.api.media_files.router import router as media_files
 from src.api.media_player.router import router as media_player
 from src.api.playlists.router import router as playlists
@@ -24,46 +24,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.mount("/static",
-          StaticFiles(directory=AppDir.STATIC.value, html=True),
+app.mount("/static_files",
+          StaticFiles(directory=AppDir.STATIC_FILES.value, html=True),
           name="static_files")
 
 if app_config.openapi:
     app.include_router(openapi)
 else:
     app.openapi_url = None
+app.include_router(app_router)
 app.include_router(system_control)
 app.include_router(web_browser)
 app.include_router(media_player)
 app.include_router(media_files)
 app.include_router(playlists)
-
-
-@app.get("/app/node-name", responses={
-    200: {"description": "Node name retrieved successfully"}
-}, status_code=200)
-def node_name() -> str:
-    config = ConfigSchema.model_validate(config_manager.load_section())
-    return config.nodeName
-
-
-@app.put("/app/node-name/{new_name}", responses={
-    204: {"description": "Node name updated successfully"}
-}, status_code=204)
-def change_node_name(new_name: Annotated[str, Path(max_length=40)]) -> None:
-    data = ConfigSchema(nodeName=new_name.strip())
-    config_manager.save_section(data.model_dump(exclude_none=True))
-
-
-@app.get("/app/version", responses={
-    200: {"description": "App version retrieved successfully"},
-    404: {"description": "App version not found"}
-}, status_code=200)
-def app_version() -> str:
-    try:
-        return VERSION_FILE.read_text("utf-8")
-    except FileNotFoundError as error:
-        raise HTTPException(404, "App version not found") from error
 
 
 if __name__ == "__main__":

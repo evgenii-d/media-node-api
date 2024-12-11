@@ -2,13 +2,18 @@
 set -e
 app_dir="$(dirname "$(dirname "$(realpath "$0")")")"
 
-echo "[Setup Project]"
+if [ "$EUID" -eq 0 ]; then
+    echo "Run this script without root privileges." >&2
+    exit 1
+fi
 
 echo
+echo "[Setup Project]"
 echo "> Creating virtual environment"
-python -m venv "$app_dir/venv"
+python3 -m venv "$app_dir/venv"
 
 echo "> Activating virtual environment"
+# shellcheck disable=SC1091
 . "$app_dir/venv/bin/activate"
 
 echo "> Installing project dependencies"

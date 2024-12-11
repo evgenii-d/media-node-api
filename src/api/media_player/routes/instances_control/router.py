@@ -23,7 +23,7 @@ router = APIRouter(prefix="/instances")
     404: {"description": "No player instances found"},
     502: {"description": "Failed to execute command"}
 }, status_code=200)
-def player_instances() -> list[ConfigSchemaOut]:
+def list_player_instances() -> list[ConfigSchemaOut]:
     files = get_dir_files(PLAYER_CONFIGS)
     if not files:
         raise HTTPException(404, "No player instances found")
@@ -71,7 +71,7 @@ def create_player_instance(data: ConfigSchemaIn) -> ConfigSchemaOut:
     404: {"description": "No active instances found"},
     502: {"description": "Failed to retrieve active instances"}
 }, status_code=200)
-def active_instances() -> list[str]:
+def list_active_instances() -> list[str]:
     args = [
         "systemctl", "--user", "list-units",
         "--type", "service", "--state", "active,running"
@@ -109,11 +109,11 @@ def delete_player_instance(instance_uuid: str) -> None:
     file.unlink()
 
 
-@router.post("/manager/{command}", responses={
+@router.post("/service/{command}", responses={
     204: {"description": "Command executed successfully"},
     502: {"description": "Failed to execute command"}
 }, status_code=204)
-def manage_player_instances(command: SystemctlCommand) -> None:
+def control_available_instances(command: SystemctlCommand) -> None:
     args = ["systemctl", "--user"]
     match command:
         case SystemctlCommand.START:

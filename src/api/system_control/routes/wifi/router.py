@@ -9,7 +9,7 @@ from src.api.system_control.routes.wifi.schemas import (
     WifiNetworkSchema
 )
 
-router = APIRouter(prefix="/wifi")
+router = APIRouter(prefix="/wifi", tags=["wifi"])
 
 
 @router.get("/interfaces", responses={

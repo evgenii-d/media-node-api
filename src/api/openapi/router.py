@@ -2,7 +2,7 @@ from fastapi import APIRouter, FastAPI
 from fastapi.openapi.docs import (get_redoc_html, get_swagger_ui_html,
                                   get_swagger_ui_oauth2_redirect_html)
 
-STATIC_FILES = "/static/openapi"
+STATIC_FILES = "/static_files/openapi"
 router = APIRouter(include_in_schema=False)
 default_title = FastAPI().title
 openapi_url = FastAPI().openapi_url
