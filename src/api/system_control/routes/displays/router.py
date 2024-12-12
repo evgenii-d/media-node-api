@@ -30,7 +30,7 @@ def xrandr_to_dict(xrandr_args: list[str]) -> dict[str, str]:
     404: {"description": "Connected displays not found"},
     502: {"description": "Failed to retrieve connected displays"}
 }, status_code=200)
-def connected_displays() -> list[ConnectedDisplay]:
+def list_connected_displays() -> list[ConnectedDisplay]:
     command = SysCmdExec.run(["xrandr"])
     if not command.success:
         raise HTTPException(502, "Failed to retrieve connected displays")
@@ -42,22 +42,54 @@ def connected_displays() -> list[ConnectedDisplay]:
     for i in data:
         # i[0] - display name, i[1] - is primary?, i[2] - resolution
         # i[3] - position, i[4] - rotation and reflect, i[5] - resolutions
+        display_resolutions: list[DisplayResolution] = []
+        refresh_rate: float = 0.0
+
+        # Display width and height
         width, height = map(int, i[2].split("x"))
+
+        # Display position
         x, y = map(int, i[3].split("+"))
+
+        # Rotation and reflect
         if i[4]:
             rotation = i[4].split()[0]
             reflect = "".join(filter(str.isupper, i[4])).lower()
         else:
             rotation, reflect = "normal", "normal"
+
+        # Current refresh rate
+        rate_line = next(
+            (line for line in i[5].splitlines() if "*" in line), None
+        )
+        if rate_line:
+            match_rate = re.search(r"(\d+\.\d+)\*", rate_line)
+            if match_rate:
+                refresh_rate = float(match_rate.group(1))
+
+        # Available display resolutions
+        for line in i[5].splitlines():
+            try:
+                values = line.split()[0].split("x")
+                display_resolutions.append(
+                    DisplayResolution(
+                        width=int(values[0]), height=int(values[1])
+                    )
+                )
+            except ValueError:
+                pass
+
         result.append(ConnectedDisplay(
             name=i[0],
             primary=bool(i[1]),
             resolution=DisplayResolution(width=width, height=height),
+            rate=refresh_rate,
             position=DisplayPosition(x=x, y=y),
             rotation=rotation,
             reflect=reflect,
-            resolutions=[s.split()[0] for s in i[5].splitlines()]
+            resolutions=display_resolutions
         ))
+
     if result:
         return result
     raise HTTPException(404, "Connected displays not found")
@@ -68,7 +100,6 @@ def connected_displays() -> list[ConnectedDisplay]:
     502: {"description": "Failed to execute display detection command"}
 }, status_code=204)
 def displays_detection(command: Literal["start", "stop", "restart"]) -> None:
-
     args = ["systemctl", "--user", command, "display-detector.service"]
     if not SysCmdExec.run(args).success:
         raise HTTPException(502, f"Failed to {command} the display detection")
@@ -95,6 +126,8 @@ def displays_config() -> list[DisplayConfig]:
         if "--mode" in args:
             width, height = args["--mode"].split("x")
             display.resolution = DisplayResolution(width=width, height=height)
+        if "--rate" in args:
+            display.rate = args["--rate"]
         if "--rotation" in args:
             display.rotation = args["--rotation"]
         if "--position" in args:
@@ -115,6 +148,8 @@ def apply_display_config(display: DisplayConfig) -> None:
     if display.resolution:
         width, height = display.resolution.width, display.resolution.height
         args.extend(["--mode", f"{width}x{height}"])
+    if display.rate:
+        args.extend(["--rate", str(display.rate)])
     if display.rotation:
         args.extend(["--rotation", display.rotation])
     if display.position:

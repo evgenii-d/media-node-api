@@ -19,15 +19,17 @@ class ConnectedDisplay(BaseModel):
     name: str
     primary: bool
     resolution: DisplayResolution
+    rate: float
     position: DisplayPosition
     rotation: DisplayRotation
     reflect: DisplayReflect
-    resolutions: list[str]
+    resolutions: list[DisplayResolution]
 
 
 class DisplayConfig(BaseModel):
     name: str
     resolution: Optional[DisplayResolution] = None
+    rate: Optional[float] = None
     rotation: Optional[DisplayRotation] = None
     position: Optional[DisplayPosition] = None
     reflect: Optional[DisplayReflect] = None
