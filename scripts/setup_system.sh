@@ -97,10 +97,10 @@ echo "> Open port 5000"
 sudo ufw allow 5000
 
 echo "> Block SSH access"
-sudo ufw --force delete allow ssh
+sudo ufw delete allow ssh
 
 echo "> Enable UFW"
-sudo ufw enable
+sudo ufw --force enable
 
 echo
 echo "[Create Sudoers File for Current User]"
