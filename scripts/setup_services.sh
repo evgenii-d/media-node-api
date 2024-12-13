@@ -130,4 +130,4 @@ else
 fi
 
 echo
-echo "Setup complete. Reboot the system to apply all changes."
+echo "Setup complete."

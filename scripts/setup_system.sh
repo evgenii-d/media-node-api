@@ -117,4 +117,4 @@ sudo chmod 0440 "/etc/sudoers.d/$SUDO_USER"
 echo
 echo "Warning: SSH access is blocked!"
 echo "Ensure you have console access if needed."
-echo "System setup complete. Reboot the system to apply all changes."
+echo "System setup complete."
