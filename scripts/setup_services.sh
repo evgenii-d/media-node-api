@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 user_services_dir="$HOME/.config/systemd/user"
 app_dir="$(dirname "$(dirname "$(realpath "$0")")")"
 scripts_dir="$app_dir/scripts"
@@ -129,4 +130,4 @@ else
 fi
 
 echo
-echo "Done"
+echo "Setup complete. Reboot the system to apply all changes."

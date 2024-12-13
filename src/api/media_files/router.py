@@ -56,7 +56,7 @@ async def upload_files(files: list[UploadFile]) -> UploadOutSchema:
     204: {"description": "File deleted successfully"},
     404: {"description": "File not found"},
 }, status_code=204)
-def delete_files(filename: str) -> None:
+def delete_file(filename: str) -> None:
     file = AppDir.MEDIA.value/filename
     if not file.exists():
         raise HTTPException(404, "File not found")

@@ -88,6 +88,21 @@ wifi.scan-rand-mac-address=no
 EOF
 
 echo
+echo "[UFW (Uncomplicated Firewall)]"
+echo "> Setup UFW default policies"
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+
+echo "> Open port 5000"
+sudo ufw allow 5000
+
+echo "> Block SSH access"
+sudo ufw delete allow ssh
+
+echo "> Enable UFW"
+sudo ufw enable
+
+echo
 echo "[Create Sudoers File for Current User]"
 cat <<EOF >"/etc/sudoers.d/$SUDO_USER"
 $SUDO_USER ALL=NOPASSWD: $(sudo which hostnamectl)
@@ -100,4 +115,6 @@ EOF
 sudo chmod 0440 "/etc/sudoers.d/$SUDO_USER"
 
 echo
+echo "Warning: SSH access is blocked!"
+echo "Ensure you have console access if needed."
 echo "System setup complete. Reboot the system to apply all changes."

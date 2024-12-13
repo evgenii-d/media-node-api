@@ -38,7 +38,7 @@ def list_connected_displays() -> list[ConnectedDisplay]:
     regex = (r"(.+)\s(?:connected)(.*)\s(\d+x\d+)\+(\d+\+\d+)\s(.*?)\(.+\n"
              r"((\s+\d+x\d+\w*\s+.*\n)+)")
     data: list[tuple[str]] = re.findall(regex, command.output)
-    result = []
+    result: list[ConnectedDisplay] = []
     for i in data:
         # i[0] - display name, i[1] - is primary?, i[2] - resolution
         # i[3] - position, i[4] - rotation and reflect, i[5] - resolutions
@@ -117,7 +117,7 @@ def displays_config() -> list[DisplayConfig]:
     if not xrandr_data:
         raise HTTPException(404, "Displays configuration not created")
 
-    result = []
+    result: list[DisplayConfig] = []
     for line in xrandr_data.splitlines():
         args = xrandr_to_dict(line.split())
         display = DisplayConfig(name=args["--output"])
@@ -173,7 +173,7 @@ def apply_display_config(display: DisplayConfig) -> None:
         XRANDR_CONFIG.write_text(xrandr_data, "utf-8")
         return
 
-    stored_args = []
+    stored_args: list[str] = []
     xrandr_data = xrandr_data.splitlines()
     for line in xrandr_data:
         if display.name in line:

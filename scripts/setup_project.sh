@@ -23,4 +23,4 @@ echo "> Deactivating virtual environment"
 deactivate
 
 echo
-echo "Done"
+echo "Project setup complete."
