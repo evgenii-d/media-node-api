@@ -12,11 +12,10 @@ fi
 case "${command,,}" in
 
 # Start instances with enabled 'autostart'
-"autostart")
+"start-auto")
     for file in "$configs_dir"/*; do
-        autostart=$(grep "autostart" "$file" |
-            cut -d "=" -f2 | tr -d "\r" | xargs)
-        uuid=$(grep "uuid" "$file" | cut -d "=" -f2 | tr -d "\r" | xargs)
+        autostart=$(awk -F= '/^autostart/ {print $2; exit}' "$file" | xargs)
+        uuid=$(awk -F= '/^uuid/ {print $2; exit}' "$file" | xargs)
 
         if [[ "${autostart,,}" == "true" ]]; then
             echo "'$uuid' - enabled, starting ..."
@@ -24,7 +23,7 @@ case "${command,,}" in
                 echo "Error starting service for instance '$uuid'" >&2
             fi
         else
-            echo "'$uuid' - disabled"
+            echo "'$uuid' - autostart disabled"
         fi
     done
     ;;

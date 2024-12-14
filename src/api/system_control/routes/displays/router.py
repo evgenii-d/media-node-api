@@ -31,34 +31,33 @@ def xrandr_to_dict(xrandr_args: list[str]) -> dict[str, str]:
     502: {"description": "Failed to retrieve connected displays"}
 }, status_code=200)
 def list_connected_displays() -> list[ConnectedDisplay]:
+    # pylint: disable=too-many-locals
     command = SysCmdExec.run(["xrandr"])
     if not command.success:
         raise HTTPException(502, "Failed to retrieve connected displays")
 
+    result: list[ConnectedDisplay] = []
     regex = (r"(.+)\s(?:connected)(.*)\s(\d+x\d+)\+(\d+\+\d+)\s(.*?)\(.+\n"
              r"((\s+\d+x\d+\w*\s+.*\n)+)")
     data: list[tuple[str]] = re.findall(regex, command.output)
-    result: list[ConnectedDisplay] = []
     for i in data:
-        # i[0] - display name, i[1] - is primary?, i[2] - resolution
-        # i[3] - position, i[4] - rotation and reflect, i[5] - resolutions
+        # i[0] - display name,
+        # i[1] - is primary?,
+        # i[2] - current display resolution
+        # i[3] - display position (x, y),
+        # i[4] - rotation and reflect,
+        # i[5] - available display resolutions
         display_resolutions: list[DisplayResolution] = []
         refresh_rate: float = 0.0
-
-        # Display width and height
         width, height = map(int, i[2].split("x"))
-
-        # Display position
         x, y = map(int, i[3].split("+"))
-
-        # Rotation and reflect
         if i[4]:
             rotation = i[4].split()[0]
             reflect = "".join(filter(str.isupper, i[4])).lower()
         else:
             rotation, reflect = "normal", "normal"
 
-        # Current refresh rate
+        # Get current refresh rate
         rate_line = next(
             (line for line in i[5].splitlines() if "*" in line), None
         )
@@ -67,7 +66,7 @@ def list_connected_displays() -> list[ConnectedDisplay]:
             if match_rate:
                 refresh_rate = float(match_rate.group(1))
 
-        # Available display resolutions
+        # Get available display resolutions
         for line in i[5].splitlines():
             try:
                 values = line.split()[0].split("x")
@@ -79,16 +78,18 @@ def list_connected_displays() -> list[ConnectedDisplay]:
             except ValueError:
                 pass
 
-        result.append(ConnectedDisplay(
-            name=i[0],
-            primary=bool(i[1]),
-            resolution=DisplayResolution(width=width, height=height),
-            rate=refresh_rate,
-            position=DisplayPosition(x=x, y=y),
-            rotation=rotation,
-            reflect=reflect,
-            resolutions=display_resolutions
-        ))
+        result.append(
+            ConnectedDisplay(
+                name=i[0],
+                primary=bool(i[1]),
+                resolution=DisplayResolution(width=width, height=height),
+                rate=refresh_rate,
+                position=DisplayPosition(x=x, y=y),
+                rotation=rotation,
+                reflect=reflect,
+                resolutions=display_resolutions
+            )
+        )
 
     if result:
         return result

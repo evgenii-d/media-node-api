@@ -56,7 +56,7 @@ ExecStartPost=python3 $scripts_dir/init_media_player_audio.py
 EOF
 
 echo "> VLC Media Player Instances Manager"
-cat <<EOF >"$user_services_dir/media-player-instances-manager@.service"
+cat <<EOF >"$user_services_dir/media-player-instances-control@.service"
 [Unit]
 Description=VLC Media Player Instances Manager. Command %i
 After=graphical.target
@@ -79,14 +79,14 @@ ExecStart=$scripts_dir/run_web_browser.sh
 EOF
 
 echo "> Chromium Browser Instances Manager"
-cat <<EOF >"$user_services_dir/web-browser-instances-manager@.service"
+cat <<EOF >"$user_services_dir/web-browser-instances-control@.service"
 [Unit]
 Description=Chromium Browser Instances Manager. Command %i
 After=graphical.target
 
 [Service]
 Type=oneshot
-ExecStart=$scripts_dir/web_browser_instances_manager.sh %i
+ExecStart=$scripts_dir/web_browser_instances_control.sh %i
 EOF
 
 echo "> Display Detector"

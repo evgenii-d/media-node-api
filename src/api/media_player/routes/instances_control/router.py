@@ -66,24 +66,43 @@ def create_player_instance(data: ConfigSchemaIn) -> ConfigSchemaOut:
     return ConfigSchemaOut(**new_config.model_dump())
 
 
-@router.get("/active", responses={
-    200: {"description": "Active instances retrieved successfully"},
-    404: {"description": "No active instances found"},
-    502: {"description": "Failed to retrieve active instances"}
+@router.get("/running", responses={
+    200: {"description": "Running instances retrieved successfully"},
+    404: {"description": "No running instances found"},
+    502: {"description": "Failed to retrieve running instances"}
 }, status_code=200)
-def list_active_instances() -> list[str]:
+def list_running_instances() -> list[str]:
     args = [
         "systemctl", "--user", "list-units",
         "--type", "service", "--state", "active,running"
     ]
     command = SysCmdExec.run(args)
     if not command.success:
-        raise HTTPException(502, "Failed to retrieve active instances")
+        raise HTTPException(502, "Failed to retrieve running instances")
 
     result = re.findall(r"media-player@(.*).service", command.output)
     if result:
         return result
-    raise HTTPException(404, "No active instances found")
+    raise HTTPException(404, "No running instances found")
+
+
+@router.post("/control/{command}", responses={
+    204: {"description": "Command executed successfully"},
+    502: {"description": "Failed to execute command"}
+}, status_code=204)
+def control_available_instances(command: SystemctlCommand) -> None:
+    args = ["systemctl", "--user"]
+    match command:
+        case SystemctlCommand.START:
+            args.extend([
+                "start",
+                "media-player-instances-control@start-all.service"
+            ])
+        case _:
+            args.extend([command.value, "media-player@*.service"])
+    if not SysCmdExec.run(args).success:
+        message = f"Failed to execute '{command.value}' command"
+        raise HTTPException(502, message)
 
 
 @router.patch("/{instance_uuid}", responses={
@@ -107,22 +126,3 @@ def delete_player_instance(instance_uuid: str) -> None:
     if not file.exists():
         raise HTTPException(404, "Player instance not found")
     file.unlink()
-
-
-@router.post("/service/{command}", responses={
-    204: {"description": "Command executed successfully"},
-    502: {"description": "Failed to execute command"}
-}, status_code=204)
-def control_available_instances(command: SystemctlCommand) -> None:
-    args = ["systemctl", "--user"]
-    match command:
-        case SystemctlCommand.START:
-            args.extend([
-                "start",
-                "media-player-instances-manager@start-all.service"
-            ])
-        case _:
-            args.extend([command.value, "media-player@*.service"])
-    if not SysCmdExec.run(args).success:
-        message = f"Failed to execute '{command.value}' command"
-        raise HTTPException(502, message)

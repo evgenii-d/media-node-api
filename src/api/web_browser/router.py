@@ -60,22 +60,40 @@ def create_browser_instance(data: ConfigSchemaIn) -> ConfigSchemaOut:
     return data_out
 
 
-@router.get("/instances/active", responses={
-    200: {"description": "Active instances retrieved successfully"},
-    404: {"description": "No active instances found"},
-    502: {"description": "Failed to retrieve active instances"}
+@router.get("/instances/running", responses={
+    200: {"description": "Running instances retrieved successfully"},
+    404: {"description": "No running instances found"},
+    502: {"description": "Failed to retrieve running instances"}
 }, status_code=200)
-def list_active_instances() -> list[str]:
+def list_running_instances() -> list[str]:
     args = ["systemctl", "--user", "list-units",
             "--type", "service", "--state", "active,running"]
     command = SysCmdExec.run(args)
     if not command.success:
-        raise HTTPException(502, "Failed to retrieve active instances")
+        raise HTTPException(502, "Failed to retrieve running instances")
 
     result = re.findall(r"web-browser@(.*).service", command.output)
     if result:
         return result
-    raise HTTPException(404, "No active instances found")
+    raise HTTPException(404, "No running instances found")
+
+
+@router.post("/instances/control/{command}", responses={
+    204: {"description": "Command executed successfully"},
+    502: {"description": "Failed to execute command"}
+}, status_code=204)
+def control_available_instances(command: SystemctlCommand) -> None:
+    args = ["systemctl", "--user"]
+    match command:
+        case SystemctlCommand.START:
+            args.extend([
+                "start", "web-browser-instances-control@start-all.service"
+            ])
+        case _:
+            args.extend([command.value, "web-browser@*.service"])
+    if not SysCmdExec.run(args).success:
+        message = f"Failed to execute '{command.value}' command"
+        raise HTTPException(502, message)
 
 
 @router.patch("/instances/{instance_uuid}", responses={
@@ -110,25 +128,7 @@ def delete_browser_instance(instance_uuid: str) -> None:
     file.unlink()
 
 
-@router.post("/instances/service/{command}", responses={
-    204: {"description": "Command executed successfully"},
-    502: {"description": "Failed to execute command"}
-}, status_code=204)
-def control_available_instances(command: SystemctlCommand) -> None:
-    args = ["systemctl", "--user"]
-    match command:
-        case SystemctlCommand.START:
-            args.extend([
-                "start", "web-browser-instances-manager@start-all.service"
-            ])
-        case _:
-            args.extend([command.value, "web-browser@*.service"])
-    if not SysCmdExec.run(args).success:
-        message = f"Failed to execute '{command.value}' command"
-        raise HTTPException(502, message)
-
-
-@router.post("/{instance_uuid}/service/{command}", responses={
+@router.post("/instances/{instance_uuid}/control/{command}", responses={
     204: {"description": "Command executed successfully"},
     404: {"description": "Browser instance not found"},
     502: {"description": "Failed to execute command"}

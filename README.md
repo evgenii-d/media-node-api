@@ -44,7 +44,7 @@ Execute each script using the following command:
 **Warning**: Running `setup_system.sh` will block SSH access!
 Ensure you have console access if needed.
 
-### 4. Reboot the system to apply all changes
+### 4. Reboot the System to Apply Changes
 
 ```bash
 sudo shutdown -r now

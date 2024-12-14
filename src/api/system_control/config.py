@@ -9,7 +9,8 @@ CURSOR_MANAGER = AppDir.BASE.value/"scripts/mouse_cursor_manager.sh"
 DEFAULT_DATA = {
     "DEFAULT": ConfigSchema(
         audioDevice="",
-        volume=50
+        volume=50,
+        autostartDelay=10
     ).model_dump()
 }
 config_manager = ConfigManager(MODULE_CONFIG, DEFAULT_DATA)
