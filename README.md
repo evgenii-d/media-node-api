@@ -7,7 +7,15 @@
 
 ## Installation
 
-Follow these steps to set up the project on your system
+Follow these steps to set up the project on your system.
+
+### 0. Install Operating System
+
+Download the [small installation image][1] for Debian and install the OS.
+
+**Note**:
+During the [Selecting and Installing Software installation step][2],
+**do not install** any desktop environments.
 
 ### 1. Clone the Repository
 
@@ -20,7 +28,7 @@ git clone https://github.com/evgenii-d/media-node-api.git \
 
 ### 2. Make Scripts Executable
 
-Ensure all setup scripts have executable permissions:
+Ensure that all setup scripts have executable permissions:
 
 ```bash
 chmod +x ./scripts/*.sh
@@ -49,3 +57,6 @@ Ensure you have console access if needed.
 ```bash
 sudo shutdown -r now
 ```
+
+[1]: https://www.debian.org/distrib/netinst
+[2]: https://www.debian.org/releases/stable/i386/ch06s03#pkgsel

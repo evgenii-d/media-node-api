@@ -12,7 +12,7 @@ if [[ -f "$system_control_config" ]]; then
     )
 fi
 
-# Sleep for autostartDelay if set, otherwise sleep for 10 seconds.
+# Sleep for autostartDelay if set, otherwise sleep for 10 seconds
 sleep "${autostartDelay:-10}"
 
 # Execute xrandr to configure displays
