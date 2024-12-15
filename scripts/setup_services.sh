@@ -55,15 +55,15 @@ ExecStartPost=sleep 5
 ExecStartPost=python3 $scripts_dir/init_media_player_audio.py
 EOF
 
-echo "> VLC Media Player Instances Manager"
+echo "> VLC Media Player Instances Control"
 cat <<EOF >"$user_services_dir/media-player-instances-control@.service"
 [Unit]
-Description=VLC Media Player Instances Manager. Command %i
+Description=VLC Media Player Instances Control. Command %i
 After=graphical.target
 
 [Service]
 Type=oneshot
-ExecStart=$scripts_dir/media_player_instances_manager.sh %i
+ExecStart=$scripts_dir/media_player_instances_control.sh %i
 EOF
 
 echo "> Chromium Browser Instance"
@@ -78,10 +78,10 @@ EnvironmentFile=$configs_dir/web_browser/%i.ini
 ExecStart=$scripts_dir/run_web_browser.sh
 EOF
 
-echo "> Chromium Browser Instances Manager"
+echo "> Chromium Browser Instances Control"
 cat <<EOF >"$user_services_dir/web-browser-instances-control@.service"
 [Unit]
-Description=Chromium Browser Instances Manager. Command %i
+Description=Chromium Browser Instances Control. Command %i
 After=graphical.target
 
 [Service]
