@@ -66,30 +66,31 @@ def set_default_audio_device(device: str) -> None:
     204: {"description": "Mute state changed successfully"},
     502: {"description": "Failed to execute the command"}
 }, status_code=204)
-def mute_audio_device(device: str, value: Literal["0", "1"]) -> None:
+def mute_audio_device(device: str, value: Literal["true", "false"]) -> None:
     command = SysCmdExec.run(["pactl", "set-sink-mute", device, value])
     if not command.success:
         raise HTTPException(502, "Failed to execute the command")
 
 
-@router.get("/volume", responses={
+@router.get("/devices/{device}/volume", responses={
     200: {"description": "Current audio volume retrieved successfully"},
     502: {"description": "Failed to retrieve current audio volume"}
 }, status_code=200)
-def get_audio_volume() -> int:
-    command = SysCmdExec.run(["pactl", "get-sink-volume", "@DEFAULT_SINK@"])
+def get_audio_volume(device: str) -> int:
+    command = SysCmdExec.run(["pactl", "get-sink-volume", device])
     if not command.success:
         raise HTTPException(502, "Failed to retrieve current audio volume")
     volume_level = int(command.output.strip().split()[4][:-1])
     return volume_level
 
 
-@router.post("/volume/{level}", responses={
+@router.post("/devices/{device}/volume/{level}", responses={
     204: {"description": "Audio volume set successfully"},
     502: {"description": "Failed to set audio volume"}
 }, status_code=204)
-def set_audio_volume(level: Annotated[int, Path(ge=0, le=150)]) -> None:
-    args = ["pactl", "set-sink-volume", "@DEFAULT_SINK@", f"{level}%"]
+def set_audio_volume(
+        device: str, level: Annotated[int, Path(ge=0, le=150)]) -> None:
+    args = ["pactl", "set-sink-volume", device, f"{level}%"]
     command = SysCmdExec.run(args)
     if not command.success:
         raise HTTPException(502, "Failed to set audio volume")
