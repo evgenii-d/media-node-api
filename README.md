@@ -13,8 +13,10 @@ Follow these steps to set up the project on your system.
 
 Download the [small installation image][1] for Debian and install the OS.
 
-**Note**:
-During the [Selecting and Installing Software installation step][2],
+**Notes**:
+
+* [Create an Ordinary User account][2]
+* During the [Selecting and Installing Software][3] installation step,
 **do not install** any desktop environments.
 
 ### 1. Clone the Repository
@@ -59,4 +61,5 @@ sudo shutdown -r now
 ```
 
 [1]: https://www.debian.org/distrib/netinst
-[2]: https://www.debian.org/releases/stable/i386/ch06s03#pkgsel
+[2]: https://www.debian.org/releases/stable/i386/ch06s03#make-normal-user
+[3]: https://www.debian.org/releases/stable/i386/ch06s03#pkgsel
