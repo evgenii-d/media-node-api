@@ -110,7 +110,7 @@ $SUDO_USER ALL=NOPASSWD: $(sudo which shutdown)
 $SUDO_USER ALL=NOPASSWD: $(sudo which nmcli)
 $SUDO_USER ALL=NOPASSWD: $(sudo which sed)
 $SUDO_USER ALL=NOPASSWD: $script_dir/change_hostname.sh
-$SUDO_USER ALL=NOPASSWD: $script_dir/mouse_cursor_manager.sh
+$SUDO_USER ALL=NOPASSWD: $script_dir/mouse_cursor_control.sh
 EOF
 sudo chmod 0440 "/etc/sudoers.d/$SUDO_USER"
 

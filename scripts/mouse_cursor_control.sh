@@ -12,14 +12,14 @@ fi
 case "${command,,}" in
 
 # Show mouse cursor
-"show")
+"on")
     sudo sed -i \
         's/^\(xserver-command\s*=\s*\)\(.*\)$/\1X -s 0 dpms :0/' \
         "$lightdm_config_path"
     ;;
 
 # Hide mouse cursor
-"hide")
+"off")
     sudo sed -i \
         's/^\(xserver-command\s*=\s*\)\(.*\)$/\1X -s 0 dpms :0 -nocursor/' \
         "$lightdm_config_path"
