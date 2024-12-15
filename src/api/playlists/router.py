@@ -57,7 +57,7 @@ def delete_playlist(playlist_name: str) -> None:
     get_playlist_path(playlist_name).unlink()
 
 
-@router.get("/content/{playlist_name}", responses={
+@router.get("/{playlist_name}/content", responses={
     200: {"description": "Playlist content retrieved"},
     404: {"description": "Playlist not found"}
 }, status_code=200)
