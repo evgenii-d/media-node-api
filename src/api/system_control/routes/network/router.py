@@ -2,17 +2,17 @@ import re
 from fastapi import APIRouter, HTTPException
 
 from src.core.syscmd import SysCmdExec
-from src.api.system_control.routes.wifi.schemas import (
+from src.api.system_control.routes.network.schemas import (
     WifiInterfaceSchema,
     SavedWifiConnectionSchema,
     ConnectWifiNetworkSchema,
     WifiNetworkSchema
 )
 
-router = APIRouter(prefix="/wifi", tags=["wifi"])
+router = APIRouter(prefix="/network", tags=["network"])
 
 
-@router.get("/interfaces", responses={
+@router.get("/wifi/interfaces", responses={
     200: {"description": "Wi-Fi interfaces retrieved successfully"},
     404: {"description": "Wi-Fi interfaces not found"},
     502: {"description": "Failed to retrieve Wi-Fi interfaces"}
@@ -28,87 +28,7 @@ def wifi_interfaces() -> list[WifiInterfaceSchema]:
     raise HTTPException(404, "Wi-Fi interfaces not found")
 
 
-@router.get("/connections", responses={
-    200: {"description": "Wi-Fi connections retrieved successfully"},
-    404: {"description": "Wi-Fi connections not found"},
-    502: {"description": "Failed to retrieve Wi-Fi connections"}
-}, status_code=200)
-def saved_wifi_connections() -> list[SavedWifiConnectionSchema]:
-    command = SysCmdExec.run(["sudo", "nmcli", "-t", "connection", "show"])
-    if not command.success:
-        raise HTTPException(502, "Failed to retrieve Wi-Fi connections")
-
-    result = []
-    for line in command.output.splitlines():
-        if "wireless" in line:
-            data = [i.strip() for i in line.split(":")]
-            item = SavedWifiConnectionSchema(ssid=data[0], interface=data[3])
-            result.append(item)
-    if result:
-        return result
-    raise HTTPException(404, "Wi-Fi connections not found")
-
-
-@router.delete("/connections/{ssid}", responses={
-    204: {"description": "Wi-Fi connection deleted successfully"},
-    502: {"description": "Failed to delete Wi-Fi connection"}
-}, status_code=204)
-def delete_saved_wifi_connection(ssid: str) -> None:
-    args = ["sudo", "nmcli", "connection", "delete", ssid]
-    if not SysCmdExec.run(args).success:
-        raise HTTPException(502, f"Failed to delete {ssid}")
-
-
-@router.post("/connect/{ssid}", responses={
-    204: {"description": "Successfully connected to the Wi-Fi network"},
-    502: {"description": "An error occurred while attempting to "
-          "connect to the Wi-Fi network"}
-}, status_code=204)
-def connect_wifi_network(
-    ssid: str,
-    data: ConnectWifiNetworkSchema | None = None
-) -> None:
-    connect_args = ["sudo", "nmcli", "device", "wifi", "connect", ssid]
-
-    if data:
-        if data.password:
-            connect_args.extend(["password", data.password])
-
-        if data.interface:
-            connect_args.extend(["ifname", data.interface])
-
-    connect = SysCmdExec.run(connect_args)
-    if not connect.success:
-        raise HTTPException(502, f"Failed to connect to '{ssid}'")
-
-    enable_autoconnect = SysCmdExec.run([
-        "sudo", "nmcli", "connection", "modify", ssid,
-        "connection.autoconnect", "yes"
-    ])
-    if not enable_autoconnect.success:
-        message = f"Failed to enable autoconnect for '{ssid}'"
-        raise HTTPException(502, message)
-
-
-@router.post("/disconnect/{ssid}", responses={
-    204: {"description": "Successfully disconnected from the Wi-Fi network"},
-    502: {"description": "An error occurred while attempting to "
-          "disconnect from the Wi-Fi network"}
-}, status_code=204)
-def disconnect_wifi_network(ssid: str) -> None:
-    disconnect = SysCmdExec.run(["sudo", "nmcli", "connection", "down", ssid])
-    if not disconnect.success:
-        raise HTTPException(502, f"Failed to disconnect '{ssid}'")
-
-    disable_autoconnect = SysCmdExec.run([
-        "sudo", "nmcli", "connection", "modify", ssid,
-        "connection.autoconnect", "no"
-    ])
-    if not disable_autoconnect.success:
-        raise HTTPException(502, "Failed to disable autoconnect")
-
-
-@router.get("/{interface}/networks", responses={
+@router.get("/wifi/interfaces/{interface}/networks", responses={
     200: {"description": "Available Wi-Fi networks retrieved successfully"},
     404: {"description": "Wi-Fi networks not found"},
     502: {"description": "Failed to retrieve Wi-Fi networks"}
@@ -143,3 +63,83 @@ def available_wifi_networks(interface: str) -> list[WifiNetworkSchema]:
     if result:
         return result
     raise HTTPException(404, "Wi-Fi networks not found")
+
+
+@router.get("/wifi/connections", responses={
+    200: {"description": "Wi-Fi connections retrieved successfully"},
+    404: {"description": "Wi-Fi connections not found"},
+    502: {"description": "Failed to retrieve Wi-Fi connections"}
+}, status_code=200)
+def saved_wifi_connections() -> list[SavedWifiConnectionSchema]:
+    command = SysCmdExec.run(["sudo", "nmcli", "-t", "connection", "show"])
+    if not command.success:
+        raise HTTPException(502, "Failed to retrieve Wi-Fi connections")
+
+    result = []
+    for line in command.output.splitlines():
+        if "wireless" in line:
+            data = [i.strip() for i in line.split(":")]
+            item = SavedWifiConnectionSchema(ssid=data[0], interface=data[3])
+            result.append(item)
+    if result:
+        return result
+    raise HTTPException(404, "Wi-Fi connections not found")
+
+
+@router.delete("/wifi/connections/{ssid}", responses={
+    204: {"description": "Wi-Fi connection deleted successfully"},
+    502: {"description": "Failed to delete Wi-Fi connection"}
+}, status_code=204)
+def delete_saved_wifi_connection(ssid: str) -> None:
+    args = ["sudo", "nmcli", "connection", "delete", ssid]
+    if not SysCmdExec.run(args).success:
+        raise HTTPException(502, f"Failed to delete {ssid}")
+
+
+@router.post("/wifi/connections/{ssid}/connect", responses={
+    204: {"description": "Successfully connected to the Wi-Fi network"},
+    502: {"description": "An error occurred while attempting to "
+          "connect to the Wi-Fi network"}
+}, status_code=204)
+def connect_wifi_network(
+    ssid: str,
+    data: ConnectWifiNetworkSchema | None = None
+) -> None:
+    connect_args = ["sudo", "nmcli", "device", "wifi", "connect", ssid]
+
+    if data:
+        if data.password:
+            connect_args.extend(["password", data.password])
+
+        if data.interface:
+            connect_args.extend(["ifname", data.interface])
+
+    connect = SysCmdExec.run(connect_args)
+    if not connect.success:
+        raise HTTPException(502, f"Failed to connect to '{ssid}'")
+
+    enable_autoconnect = SysCmdExec.run([
+        "sudo", "nmcli", "connection", "modify", ssid,
+        "connection.autoconnect", "yes"
+    ])
+    if not enable_autoconnect.success:
+        message = f"Failed to enable autoconnect for '{ssid}'"
+        raise HTTPException(502, message)
+
+
+@router.post("/wifi/connections/{ssid}/disconnect", responses={
+    204: {"description": "Successfully disconnected from the Wi-Fi network"},
+    502: {"description": "An error occurred while attempting to "
+          "disconnect from the Wi-Fi network"}
+}, status_code=204)
+def disconnect_wifi_network(ssid: str) -> None:
+    disconnect = SysCmdExec.run(["sudo", "nmcli", "connection", "down", ssid])
+    if not disconnect.success:
+        raise HTTPException(502, f"Failed to disconnect '{ssid}'")
+
+    disable_autoconnect = SysCmdExec.run([
+        "sudo", "nmcli", "connection", "modify", ssid,
+        "connection.autoconnect", "no"
+    ])
+    if not disable_autoconnect.success:
+        raise HTTPException(502, "Failed to disable autoconnect")
