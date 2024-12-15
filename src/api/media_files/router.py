@@ -63,7 +63,7 @@ def delete_file(filename: str) -> None:
     file.unlink()
 
 
-@router.get("/download/{filename}", responses={
+@router.get("/{filename}/download", responses={
     200: {"description": "File successfully downloaded"},
     404: {"description": "File not found"}
 }, status_code=200)
