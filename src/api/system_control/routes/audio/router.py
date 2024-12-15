@@ -50,7 +50,7 @@ def default_audio_device() -> AudioDeviceSchema:
         raise HTTPException(502, message) from e
 
 
-@router.post("/devices/default/{device}", responses={
+@router.post("/devices/{device}/default", responses={
     204: {"description": "Default audio device set successfully"},
     502: {"description": "Failed to set default audio device"}
 }, status_code=204)
@@ -62,7 +62,7 @@ def set_default_audio_device(device: str) -> None:
     config_manager.save_section(data.model_dump(exclude_none=True))
 
 
-@router.post("/devices/mute/{device}", responses={
+@router.post("/devices/{device}/mute", responses={
     204: {"description": "Mute state changed successfully"},
     502: {"description": "Failed to execute the command"}
 }, status_code=204)
@@ -76,7 +76,7 @@ def mute_audio_device(device: str, value: Literal["0", "1"]) -> None:
     200: {"description": "Current audio volume retrieved successfully"},
     502: {"description": "Failed to retrieve current audio volume"}
 }, status_code=200)
-def audio_volume() -> int:
+def get_audio_volume() -> int:
     command = SysCmdExec.run(["pactl", "get-sink-volume", "@DEFAULT_SINK@"])
     if not command.success:
         raise HTTPException(502, "Failed to retrieve current audio volume")
