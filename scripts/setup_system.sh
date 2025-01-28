@@ -93,8 +93,11 @@ echo "> Setup UFW default policies"
 sudo ufw default deny incoming
 sudo ufw default allow outgoing
 
-echo "> Open port 5000"
-sudo ufw allow 5000
+echo "> Open API port 5000"
+sudo ufw allow 5000/tcp
+
+echo "> Open MDNS port 5353"
+sudo ufw allow 5353/udp
 
 echo "> Block SSH access"
 sudo ufw delete allow ssh
