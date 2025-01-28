@@ -45,9 +45,6 @@ and its dependencies:
 ./scripts/setup_system.sh
 ```
 
-**Warning**: Running `setup_system.sh` will block SSH access!
-Ensure you have console access if needed.
-
 ```bash
 ./scripts/setup_project.sh
 ```
@@ -55,6 +52,9 @@ Ensure you have console access if needed.
 ```bash
 ./scripts/setup_services.sh
 ```
+
+**Warning**: Running `setup_system.sh` will block SSH access!
+Ensure you have console access if needed.
 
 ### 4. Reboot the System to Apply Changes
 
