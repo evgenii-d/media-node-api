@@ -2,7 +2,8 @@ from typing import Annotated
 from pydantic import BaseModel, StringConstraints
 
 NodeNameType = Annotated[
-    str, StringConstraints(strip_whitespace=True, max_length=40)
+    str,
+    StringConstraints(strip_whitespace=True, max_length=40)
 ]
 
 

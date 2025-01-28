@@ -3,9 +3,12 @@ from pathlib import Path
 
 
 class AppDir(Enum):
-    BASE = Path(__file__).parent.parent
-    RESOURCES = BASE/"resources"
+    ROOT = Path(__file__).parent.parent
+    RESOURCES = ROOT/"resources"
+    SCRIPTS = ROOT/"scripts"
     CONFIGS = RESOURCES/"configs"
+    PLAYER_CONFIGS = CONFIGS/"media_player"
+    BROWSER_CONFIGS = CONFIGS/"web_browser"
     MEDIA = RESOURCES/"media"
     PLAYLISTS = RESOURCES/"playlists"
     STATIC_FILES = RESOURCES/"static_files"

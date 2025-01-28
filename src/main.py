@@ -24,9 +24,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.mount("/static_files",
-          StaticFiles(directory=AppDir.STATIC_FILES.value, html=True),
-          name="static_files")
+app.mount(
+    "/static_files",
+    StaticFiles(directory=AppDir.STATIC_FILES.value, html=True),
+    name="static_files"
+)
 
 if app_config.openapi:
     app.include_router(openapi)

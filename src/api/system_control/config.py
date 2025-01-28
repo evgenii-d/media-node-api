@@ -5,7 +5,7 @@ from src.api.system_control.schemas import ConfigSchema
 MODULE_CONFIG = AppDir.CONFIGS.value/"system_control.ini"
 XRANDR_CONFIG = AppDir.CONFIGS.value/"xrandr.txt"
 DUMMY_HOSTNAME = AppDir.CONFIGS.value/"hostname.txt"
-CURSOR_CONTROL = AppDir.BASE.value/"scripts/mouse_cursor_control.sh"
+CURSOR_CONTROL = AppDir.SCRIPTS.value/"mouse_cursor_control.sh"
 DEFAULT_DATA = {
     "DEFAULT": ConfigSchema(
         audioDevice="",

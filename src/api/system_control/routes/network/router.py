@@ -12,11 +12,15 @@ from src.api.system_control.routes.network.schemas import (
 router = APIRouter(prefix="/network", tags=["network"])
 
 
-@router.get("/wifi/interfaces", responses={
-    200: {"description": "Wi-Fi interfaces retrieved successfully"},
-    404: {"description": "Wi-Fi interfaces not found"},
-    502: {"description": "Failed to retrieve Wi-Fi interfaces"}
-}, status_code=200)
+@router.get(
+    "/wifi/interfaces",
+    responses={
+        200: {"description": "Wi-Fi interfaces retrieved successfully"},
+        404: {"description": "Wi-Fi interfaces not found"},
+        502: {"description": "Failed to retrieve Wi-Fi interfaces"}
+    },
+    status_code=200
+)
 def wifi_interfaces() -> list[WifiInterfaceSchema]:
     command = SysCmdExec.run(["sudo", "nmcli", "-t", "device", "status"])
     if not command.success:
@@ -28,11 +32,15 @@ def wifi_interfaces() -> list[WifiInterfaceSchema]:
     raise HTTPException(404, "Wi-Fi interfaces not found")
 
 
-@router.get("/wifi/interfaces/{interface}/networks", responses={
-    200: {"description": "Available Wi-Fi networks retrieved successfully"},
-    404: {"description": "Wi-Fi networks not found"},
-    502: {"description": "Failed to retrieve Wi-Fi networks"}
-}, status_code=200)
+@router.get(
+    "/wifi/interfaces/{interface}/networks",
+    responses={
+        200: {"description": "Available Wi-Fi networks retrieved successfully"},
+        404: {"description": "Wi-Fi networks not found"},
+        502: {"description": "Failed to retrieve Wi-Fi networks"}
+    },
+    status_code=200
+)
 def available_wifi_networks(interface: str) -> list[WifiNetworkSchema]:
     command = SysCmdExec.run([
         "sudo", "nmcli", "-t", "device", "wifi", "list", "ifname", interface
@@ -65,11 +73,15 @@ def available_wifi_networks(interface: str) -> list[WifiNetworkSchema]:
     raise HTTPException(404, "Wi-Fi networks not found")
 
 
-@router.get("/wifi/connections", responses={
-    200: {"description": "Wi-Fi connections retrieved successfully"},
-    404: {"description": "Wi-Fi connections not found"},
-    502: {"description": "Failed to retrieve Wi-Fi connections"}
-}, status_code=200)
+@router.get(
+    "/wifi/connections",
+    responses={
+        200: {"description": "Wi-Fi connections retrieved successfully"},
+        404: {"description": "Wi-Fi connections not found"},
+        502: {"description": "Failed to retrieve Wi-Fi connections"}
+    },
+    status_code=200
+)
 def saved_wifi_connections() -> list[SavedWifiConnectionSchema]:
     command = SysCmdExec.run(["sudo", "nmcli", "-t", "connection", "show"])
     if not command.success:
@@ -86,21 +98,29 @@ def saved_wifi_connections() -> list[SavedWifiConnectionSchema]:
     raise HTTPException(404, "Wi-Fi connections not found")
 
 
-@router.delete("/wifi/connections/{ssid}", responses={
-    204: {"description": "Wi-Fi connection deleted successfully"},
-    502: {"description": "Failed to delete Wi-Fi connection"}
-}, status_code=204)
+@router.delete(
+    "/wifi/connections/{ssid}",
+    responses={
+        204: {"description": "Wi-Fi connection deleted successfully"},
+        502: {"description": "Failed to delete Wi-Fi connection"}
+    },
+    status_code=204
+)
 def delete_saved_wifi_connection(ssid: str) -> None:
     args = ["sudo", "nmcli", "connection", "delete", ssid]
     if not SysCmdExec.run(args).success:
         raise HTTPException(502, f"Failed to delete {ssid}")
 
 
-@router.post("/wifi/connections/{ssid}/connect", responses={
-    204: {"description": "Successfully connected to the Wi-Fi network"},
-    502: {"description": "An error occurred while attempting to "
-          "connect to the Wi-Fi network"}
-}, status_code=204)
+@router.post(
+    "/wifi/connections/{ssid}/connect",
+    responses={
+        204: {"description": "Successfully connected to the Wi-Fi network"},
+        502: {"description": "An error occurred while attempting to "
+              "connect to the Wi-Fi network"}
+    },
+    status_code=204
+)
 def connect_wifi_network(
     ssid: str,
     data: ConnectWifiNetworkSchema | None = None
@@ -127,11 +147,15 @@ def connect_wifi_network(
         raise HTTPException(502, message)
 
 
-@router.post("/wifi/connections/{ssid}/disconnect", responses={
-    204: {"description": "Successfully disconnected from the Wi-Fi network"},
-    502: {"description": "An error occurred while attempting to "
-          "disconnect from the Wi-Fi network"}
-}, status_code=204)
+@router.post(
+    "/wifi/connections/{ssid}/disconnect",
+    responses={
+        204: {"description": "Successfully disconnected from the Wi-Fi network"},
+        502: {"description": "An error occurred while attempting to "
+              "disconnect from the Wi-Fi network"}
+    },
+    status_code=204
+)
 def disconnect_wifi_network(ssid: str) -> None:
     disconnect = SysCmdExec.run(["sudo", "nmcli", "connection", "down", ssid])
     if not disconnect.success:

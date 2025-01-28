@@ -6,7 +6,7 @@ for directory in AppDir:
     directory.value.mkdir(exist_ok=True)
 
 APP_CONFIG = AppDir.CONFIGS.value/"app.ini"
-VERSION_FILE = AppDir.BASE.value/"VERSION"
+VERSION_FILE = AppDir.ROOT.value/"VERSION"
 DEFAULT_DATA = {
     "DEFAULT": ConfigSchema(
         host="0.0.0.0",

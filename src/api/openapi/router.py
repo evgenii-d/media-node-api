@@ -1,6 +1,9 @@
 from fastapi import APIRouter, FastAPI
-from fastapi.openapi.docs import (get_redoc_html, get_swagger_ui_html,
-                                  get_swagger_ui_oauth2_redirect_html)
+from fastapi.openapi.docs import (
+    get_redoc_html,
+    get_swagger_ui_html,
+    get_swagger_ui_oauth2_redirect_html
+)
 
 STATIC_FILES = "/static_files/openapi"
 router = APIRouter(include_in_schema=False)
@@ -17,7 +20,8 @@ async def custom_swagger_ui_html():
         oauth2_redirect_url=swagger_ui_oauth2_redirect_url,
         swagger_js_url=f"{STATIC_FILES}/swagger-ui-bundle.js",
         swagger_css_url=f"{STATIC_FILES}/swagger-ui.css",
-        swagger_favicon_url=f"{STATIC_FILES}/favicon.png")
+        swagger_favicon_url=f"{STATIC_FILES}/favicon.png"
+    )
 
 
 @router.get(swagger_ui_oauth2_redirect_url)
@@ -32,4 +36,5 @@ async def redoc_html():
         title=default_title + " - ReDoc",
         redoc_js_url=f"{STATIC_FILES}/redoc.standalone.js",
         redoc_favicon_url=f"{STATIC_FILES}/favicon.png",
-        with_google_fonts=False)
+        with_google_fonts=False
+    )

@@ -1,26 +1,26 @@
-from pathlib import Path
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 
 from src.constants import AppDir
 from src.core.filesys import get_dir_files, check_dir_files
-from src.api.playlists.service import playlist_content, create_playlist
 from src.api.playlists.schemas import PlaylistSchema
+from src.api.playlists.service import (
+    get_playlist_content,
+    create_playlist,
+    get_playlist_path
+)
 
 router = APIRouter(prefix="/playlists", tags=["playlists"])
 
 
-def get_playlist_path(playlist_name: str) -> Path:
-    playlist_path = AppDir.PLAYLISTS.value/f"{playlist_name}.m3u"
-    if playlist_path.exists():
-        return playlist_path
-    raise HTTPException(404, "Playlist not found")
-
-
-@router.get("/", responses={
-    200: {"description": "Playlists retrieved successfully"},
-    404: {"description": "Playlists not found"}
-}, status_code=200)
+@router.get(
+    "/",
+    responses={
+        200: {"description": "Playlists retrieved successfully"},
+        404: {"description": "Playlists not found"}
+    },
+    status_code=200
+)
 def list_available_playlists() -> list[str]:
     files = get_dir_files(AppDir.PLAYLISTS.value, suffix=False)
     files.sort()
@@ -29,13 +29,21 @@ def list_available_playlists() -> list[str]:
     raise HTTPException(404, "Playlists not found")
 
 
-@router.post("/", responses={
-    200: {"description": "Playlist updated successfully",
-          "model": PlaylistSchema},
-    201: {"description": "Playlist created successfully",
-          "model": PlaylistSchema},
-    404: {"description": "Playlist files not found"}
-}, status_code=201)
+@router.post(
+    "/",
+    responses={
+        200: {
+            "description": "Playlist updated successfully",
+            "model": PlaylistSchema
+        },
+        201: {
+            "description": "Playlist created successfully",
+            "model": PlaylistSchema
+        },
+        404: {"description": "Playlist files not found"}
+    },
+    status_code=201
+)
 def create_new_playlist(playlist: PlaylistSchema) -> JSONResponse:
     files = check_dir_files(playlist.files, AppDir.MEDIA.value)
     if len(files.available) == 0:
@@ -49,17 +57,25 @@ def create_new_playlist(playlist: PlaylistSchema) -> JSONResponse:
     return JSONResponse(new_playlist.model_dump(), 200 if is_exists else 201)
 
 
-@router.delete("/{playlist_name}", responses={
-    204: {"description": "Playlist deleted successfully"},
-    404: {"description": "Playlist not found"}
-}, status_code=204)
+@router.delete(
+    "/{playlist_name}",
+    responses={
+        204: {"description": "Playlist deleted successfully"},
+        404: {"description": "Playlist not found"}
+    },
+    status_code=204
+)
 def delete_playlist(playlist_name: str) -> None:
     get_playlist_path(playlist_name).unlink()
 
 
-@router.get("/{playlist_name}/content", responses={
-    200: {"description": "Playlist content retrieved"},
-    404: {"description": "Playlist not found"}
-}, status_code=200)
-def get_playlist_content(playlist_name: str) -> list[str]:
-    return playlist_content(get_playlist_path(playlist_name))
+@router.get(
+    "/{playlist_name}/content",
+    responses={
+        200: {"description": "Playlist content retrieved"},
+        404: {"description": "Playlist not found"}
+    },
+    status_code=200
+)
+def get_content(playlist_name: str) -> list[str]:
+    return get_playlist_content(get_playlist_path(playlist_name))

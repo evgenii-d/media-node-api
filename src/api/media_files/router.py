@@ -9,7 +9,8 @@ from src.api.media_files.schemas import (
     MimeTypeSchema
 )
 from src.core.filesys import (
-    get_dir_files, get_dir_size,
+    get_dir_files,
+    get_dir_size,
     aio_save_files_to_dir
 )
 
@@ -17,11 +18,15 @@ from src.core.filesys import (
 router = APIRouter(prefix="/media-files", tags=["media files"])
 
 
-@router.get("/", responses={
-    200: {"description": "Media files retrieved successfully"},
-    404: {"description": "Media files not found"},
-    500: {"description": "Failed to retrieve media files"}
-}, status_code=200)
+@router.get(
+    "/",
+    responses={
+        200: {"description": "Media files retrieved successfully"},
+        404: {"description": "Media files not found"},
+        500: {"description": "Failed to retrieve media files"}
+    },
+    status_code=200
+)
 def available_files() -> AvailableFilesSchema:
     files = get_dir_files(AppDir.MEDIA.value)
     if files:
@@ -33,9 +38,11 @@ def available_files() -> AvailableFilesSchema:
     raise HTTPException(404, "Media files not found")
 
 
-@router.post("/", responses={
-    200: {"description": "Files uploaded successfully"},
-}, status_code=200)
+@router.post(
+    "/",
+    responses={200: {"description": "Files uploaded successfully"}},
+    status_code=200
+)
 async def upload_files(files: list[UploadFile]) -> UploadOutSchema:
     accepted_files: list[UploadFile] = []
     rejected_files: list[UploadFile] = []
@@ -52,10 +59,14 @@ async def upload_files(files: list[UploadFile]) -> UploadOutSchema:
     )
 
 
-@router.delete("/{filename}", responses={
-    204: {"description": "File deleted successfully"},
-    404: {"description": "File not found"},
-}, status_code=204)
+@router.delete(
+    "/{filename}",
+    responses={
+        204: {"description": "File deleted successfully"},
+        404: {"description": "File not found"},
+    },
+    status_code=204
+)
 def delete_file(filename: str) -> None:
     file = AppDir.MEDIA.value/filename
     if not file.exists():
@@ -63,19 +74,27 @@ def delete_file(filename: str) -> None:
     file.unlink()
 
 
-@router.get("/{filename}/download", responses={
-    200: {"description": "File successfully downloaded"},
-    404: {"description": "File not found"}
-}, status_code=200)
+@router.get(
+    "/{filename}/download",
+    responses={
+        200: {"description": "File successfully downloaded"},
+        404: {"description": "File not found"}
+    },
+    status_code=200
+)
 def download_file(filename: str) -> FileResponse:
     if (AppDir.MEDIA.value/filename).exists():
         return FileResponse(AppDir.MEDIA.value/filename, 200)
     raise HTTPException(404, "File not found")
 
 
-@router.get("/mime-types", responses={
-    200: {"description": "Supported MIME types retrieved successfully"}
-}, status_code=200)
+@router.get(
+    "/mime-types",
+    responses={
+        200: {"description": "Supported MIME types retrieved successfully"}
+    },
+    status_code=200
+)
 def supported_types() -> list[MimeTypeSchema]:
     return [
         MimeTypeSchema(extension=member.name.lower(), type=member.value)

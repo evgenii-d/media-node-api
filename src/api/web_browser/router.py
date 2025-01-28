@@ -16,21 +16,24 @@ from src.api.web_browser.schemas import (
 )
 
 router = APIRouter(prefix="/web-browser", tags=["web browser"])
-browser_configs = AppDir.CONFIGS.value/"web_browser"
-browser_configs.mkdir(exist_ok=True)
 
 
-@router.get("/instances", responses={
-    200: {"description": "Browser instances retrieved successfully"},
-    404: {"description": "No browser instances found"}
-}, status_code=200)
+@router.get(
+    "/instances",
+    responses={
+        200: {"description": "Browser instances retrieved successfully"},
+        404: {"description": "No browser instances found"}
+    },
+    status_code=200
+)
 def list_browser_instances() -> list[ConfigSchemaOut]:
-    files = get_dir_files(browser_configs)
+    files = get_dir_files(AppDir.BROWSER_CONFIGS.value)
     if not files:
         raise HTTPException(404, "No browser instances found")
     instances = []
     for file in files:
-        config = ConfigManager(browser_configs/file).load_section()
+        config = ConfigManager(
+            AppDir.BROWSER_CONFIGS.value/file).load_section()
         config = ConfigFileSchema(**config)
         x, y = config.position.split(",")
         instances.append(ConfigSchemaOut(
@@ -43,11 +46,13 @@ def list_browser_instances() -> list[ConfigSchemaOut]:
     return instances
 
 
-@router.post("/instances", responses={
-    201: {"description": "Browser instance created successfully"}
-}, status_code=201)
+@router.post(
+    "/instances",
+    responses={201: {"description": "Browser instance created successfully"}},
+    status_code=201
+)
 def create_browser_instance(data: ConfigSchemaIn) -> ConfigSchemaOut:
-    config_path = browser_configs/f"{uuid4().hex}.ini"
+    config_path = AppDir.BROWSER_CONFIGS.value/f"{uuid4().hex}.ini"
     data_out = ConfigSchemaOut(**data.model_dump(), uuid=config_path.stem)
     file_data = ConfigFileSchema(
         name=data_out.name,
@@ -60,11 +65,15 @@ def create_browser_instance(data: ConfigSchemaIn) -> ConfigSchemaOut:
     return data_out
 
 
-@router.get("/instances/running", responses={
-    200: {"description": "Running instances retrieved successfully"},
-    404: {"description": "No running instances found"},
-    502: {"description": "Failed to retrieve running instances"}
-}, status_code=200)
+@router.get(
+    "/instances/running",
+    responses={
+        200: {"description": "Running instances retrieved successfully"},
+        404: {"description": "No running instances found"},
+        502: {"description": "Failed to retrieve running instances"}
+    },
+    status_code=200
+)
 def list_running_instances() -> list[str]:
     args = ["systemctl", "--user", "list-units",
             "--type", "service", "--state", "active,running"]
@@ -78,10 +87,14 @@ def list_running_instances() -> list[str]:
     raise HTTPException(404, "No running instances found")
 
 
-@router.post("/instances/control/{command}", responses={
-    204: {"description": "Command executed successfully"},
-    502: {"description": "Failed to execute command"}
-}, status_code=204)
+@router.post(
+    "/instances/control/{command}",
+    responses={
+        204: {"description": "Command executed successfully"},
+        502: {"description": "Failed to execute command"}
+    },
+    status_code=204
+)
 def control_available_instances(command: SystemctlCommand) -> None:
     args = ["systemctl", "--user"]
     match command:
@@ -96,13 +109,19 @@ def control_available_instances(command: SystemctlCommand) -> None:
         raise HTTPException(502, message)
 
 
-@router.patch("/instances/{instance_uuid}", responses={
-    204: {"description": "Browser instance updated successfully"},
-    404: {"description": "Browser instance not found"}
-}, status_code=204)
-def update_browser_instance(instance_uuid: str,
-                            data: ConfigFileSchemaIn) -> None:
-    file = browser_configs/f"{instance_uuid}.ini"
+@router.patch(
+    "/instances/{instance_uuid}",
+    responses={
+        204: {"description": "Browser instance updated successfully"},
+        404: {"description": "Browser instance not found"}
+    },
+    status_code=204
+)
+def update_browser_instance(
+    instance_uuid: str,
+    data: ConfigFileSchemaIn
+) -> None:
+    file = AppDir.BROWSER_CONFIGS.value/f"{instance_uuid}.ini"
     if not file.exists():
         raise HTTPException(404, "Browser instance not found")
     position = None
@@ -117,25 +136,33 @@ def update_browser_instance(instance_uuid: str,
     ConfigManager(file).save_section(file_data)
 
 
-@router.delete("/instances/{instance_uuid}", responses={
-    204: {"description": "Browser instance deleted successfully"},
-    404: {"description": "Browser instance not found"}
-}, status_code=204)
+@router.delete(
+    "/instances/{instance_uuid}",
+    responses={
+        204: {"description": "Browser instance deleted successfully"},
+        404: {"description": "Browser instance not found"}
+    },
+    status_code=204
+)
 def delete_browser_instance(instance_uuid: str) -> None:
-    file = browser_configs/f"{instance_uuid}.ini"
+    file = AppDir.BROWSER_CONFIGS.value/f"{instance_uuid}.ini"
     if not file.exists():
         raise HTTPException(404, "Browser instance not found")
     file.unlink()
 
 
-@router.post("/instances/{instance_uuid}/control/{command}", responses={
-    204: {"description": "Command executed successfully"},
-    404: {"description": "Browser instance not found"},
-    502: {"description": "Failed to execute command"}
-}, status_code=204)
+@router.post(
+    "/instances/{instance_uuid}/control/{command}",
+    responses={
+        204: {"description": "Command executed successfully"},
+        404: {"description": "Browser instance not found"},
+        502: {"description": "Failed to execute command"}
+    },
+    status_code=204
+)
 def control_instance_service(instance_uuid: str,
                              command: SystemctlCommand) -> None:
-    file = browser_configs/f"{instance_uuid}.ini"
+    file = AppDir.BROWSER_CONFIGS.value/f"{instance_uuid}.ini"
     if not file.exists():
         raise HTTPException(404, "Browser instance not found")
     args = [

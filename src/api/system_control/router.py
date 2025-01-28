@@ -23,24 +23,36 @@ router.include_router(network_router)
 router.include_router(mouse_cursor_router)
 
 
-@router.get("/hostname", responses={
-    200: {"description": "Hostname retrieved successfully"}
-}, status_code=200)
+@router.get(
+    "/hostname",
+    responses={
+        200: {"description": "Hostname retrieved successfully"}
+    },
+    status_code=200
+)
 def hostname() -> str:
     return socket.gethostname()
 
 
-@router.post("/hostname", responses={
-    204: {"description": "Command executed successfully"}
-}, status_code=204)
+@router.post(
+    "/hostname",
+    responses={
+        204: {"description": "Command executed successfully"}
+    },
+    status_code=204
+)
 def generate_new_hostname() -> None:
     DUMMY_HOSTNAME.touch()
 
 
-@router.post("/power/{command}", responses={
-    204: {"description": "Command executed successfully"},
-    502: {"description": "Command execution failed"}
-}, status_code=204)
+@router.post(
+    "/power/{command}",
+    responses={
+        204: {"description": "Command executed successfully"},
+        502: {"description": "Command execution failed"}
+    },
+    status_code=204
+)
 def system_control(command: Literal["shutdown", "reboot"]) -> None:
     args: list[str] = []
     match command:
@@ -52,17 +64,21 @@ def system_control(command: Literal["shutdown", "reboot"]) -> None:
         raise HTTPException(502, f"Failed to execute '{command}' command")
 
 
-@router.get("/autostart/delay", responses={
-    200: {"description": "Value retrieved successfully"}
-}, status_code=200)
+@router.get(
+    "/autostart/delay",
+    responses={200: {"description": "Value retrieved successfully"}},
+    status_code=200
+)
 def autostart_delay() -> int:
     config = ConfigSchema.model_validate(config_manager.load_section())
     return config.autostartDelay
 
 
-@router.put("/autostart/delay/{value}", responses={
-    204: {"description": "Value updated successfully"}
-}, status_code=204)
+@router.put(
+    "/autostart/delay/{value}",
+    responses={204: {"description": "Value updated successfully"}},
+    status_code=204
+)
 def change_autostart_delay(value: Annotated[int, Path(ge=10)]) -> None:
     data = ConfigSchema(autostartDelay=value)
     config_manager.save_section(data.model_dump(exclude_none=True))

@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException
 
 from src.core.syscmd import SysCmdExec
 from src.api.system_control.config import XRANDR_CONFIG
+from src.api.system_control.routes.displays.service import xrandr_to_dict
 from src.api.system_control.routes.displays.schemas import (
     ConnectedDisplay,
     DisplayPosition,
@@ -15,21 +16,15 @@ from src.api.system_control.routes.displays.schemas import (
 router = APIRouter(prefix="/displays", tags=["displays"])
 
 
-def xrandr_to_dict(xrandr_args: list[str]) -> dict[str, str]:
-    result = {}
-    for i, word in enumerate(xrandr_args):
-        if word in ["xrandr", "--primary"]:
-            result.update({word: None})
-        elif "--" in word:
-            result.update({word: xrandr_args[i+1]})
-    return result
-
-
-@router.get("/", responses={
-    200: {"description": "List of connected displays retrieved successfully"},
-    404: {"description": "Connected displays not found"},
-    502: {"description": "Failed to retrieve connected displays"}
-}, status_code=200)
+@router.get(
+    "/",
+    responses={
+        200: {"description": "List of connected displays retrieved successfully"},
+        404: {"description": "Connected displays not found"},
+        502: {"description": "Failed to retrieve connected displays"}
+    },
+    status_code=200
+)
 def list_connected_displays() -> list[ConnectedDisplay]:
     # pylint: disable=too-many-locals
     command = SysCmdExec.run(["xrandr"])
@@ -96,20 +91,29 @@ def list_connected_displays() -> list[ConnectedDisplay]:
     raise HTTPException(404, "Connected displays not found")
 
 
-@router.post("/detect/{command}", responses={
-    204: {"description": "Display detection command executed successfully"},
-    502: {"description": "Failed to execute display detection command"}
-}, status_code=204)
+@router.post(
+    "/detect/{command}",
+    responses={
+        204: {"description": "Display detect executed successfully"},
+        502: {"description": "Failed to execute display detect command"}
+    },
+    status_code=204
+)
 def displays_detection(command: Literal["start", "stop", "restart"]) -> None:
     args = ["systemctl", "--user", command, "display-detector.service"]
     if not SysCmdExec.run(args).success:
         raise HTTPException(502, f"Failed to {command} the display detection")
 
 
-@router.get("/config", responses={
-    200: {"description": "Displays configuration retrieved successfully"},
-    404: {"description": "Displays configuration not created"}
-}, status_code=200, response_model_exclude_none=True)
+@router.get(
+    "/config",
+    responses={
+        200: {"description": "Displays configuration retrieved successfully"},
+        404: {"description": "Displays configuration not created"}
+    },
+    status_code=200,
+    response_model_exclude_none=True
+)
 def displays_config() -> list[DisplayConfig]:
     if not XRANDR_CONFIG.exists():
         raise HTTPException(404, "Displays configuration not created")
@@ -140,10 +144,14 @@ def displays_config() -> list[DisplayConfig]:
     return result
 
 
-@router.post("/config", responses={
-    204: {"description": "Display configuration applied successfully"},
-    502: {"description": "Failed to process display configuration"}
-}, status_code=204)
+@router.post(
+    "/config",
+    responses={
+        204: {"description": "Display configuration applied successfully"},
+        502: {"description": "Failed to process display configuration"}
+    },
+    status_code=204
+)
 def apply_display_config(display: DisplayConfig) -> None:
     args = ["xrandr", "--output", display.name]
     if display.resolution:
@@ -191,10 +199,14 @@ def apply_display_config(display: DisplayConfig) -> None:
     XRANDR_CONFIG.write_text("\n".join(xrandr_data), "utf-8")
 
 
-@router.delete("/config/{display_name}", responses={
-    204: {"description": "Display configuration deleted successfully"},
-    404: {"description": "Display configuration not found"}
-}, status_code=204)
+@router.delete(
+    "/config/{display_name}",
+    responses={
+        204: {"description": "Display configuration deleted successfully"},
+        404: {"description": "Display configuration not found"}
+    },
+    status_code=204
+)
 def delete_display_config(display_name: str) -> None:
     if not XRANDR_CONFIG.exists():
         raise HTTPException(404, "Displays configuration not created")
